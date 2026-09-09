@@ -1,31 +1,188 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>กำลังเปิดแบบเรียน...</title>
-<style>body{font-family:system-ui,sans-serif;background:#f5f9fc;color:#18324a;display:grid;place-items:center;min-height:100vh;margin:0}.loading{padding:24px;text-align:center}</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7fbff" />
+  <meta name="description" content="บทเรียนและแบบทดสอบ ป.3 หลายวิชา พร้อมอ่านออกเสียงภาษาไทย" />
+  <title>แบบเรียนและแบบทดสอบ ป.3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260909S" />
 </head>
-<body><div class="loading">กำลังเปิดแบบเรียน…</div>
-<script>
-(async()=>{
-  try{
-    const parts=await Promise.all([0,1,2,3,4].map(i=>fetch(`p${i}.txt?v=R`,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`p${i}`);return r.text()})));
-    const bin=atob(parts.join('').trim());
-    const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
-    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    const text=await new Response(stream).text();
-    const b=JSON.parse(text);
-    let html=b['index.html'];
-    html=html.replace(/<link rel="stylesheet" href="styles\.css[^"]*" \/>/,`<style>${b['styles.css']}</style>`);
-    html=html.replace(/<script src="data\.js[^"]*"><\/script>/,`<script>${b['data.js'].replace(/<\/script/gi,'<\\/script')}</script>`);
-    html=html.replace(/<script src="app\.js[^"]*"><\/script>/,`<script>${b['app.js'].replace(/<\/script/gi,'<\\/script')}</script>`);
-    document.open();document.write(html);document.close();
-  }catch(e){
-    document.body.innerHTML='<div class="loading"><h2>เปิดเว็บไม่สำเร็จ</h2><p>กรุณารีเฟรชหน้าอีกครั้ง</p></div>';
-    console.error(e);
-  }
-})();
-</script>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">แบบเรียนและแบบทดสอบ ป.3</div>
+        <h1>ศูนย์การเรียนรู้</h1>
+        <p class="subtitle">เลือกวิชา อ่านเนื้อหาสรุป แล้วทำแบบทดสอบได้ในที่เดียว</p>
+      </div>
+      <button class="icon-btn" id="stopSpeechBtn" type="button" title="หยุดอ่านออกเสียง" aria-label="หยุดอ่านออกเสียง">■ หยุดเสียง</button>
+    </header>
+
+    <nav class="tabbar" aria-label="เมนูหลัก">
+      <button class="tab active" data-view="home" type="button">วิชาทั้งหมด</button>
+      <button class="tab" data-view="settings" type="button">เสียงอ่าน</button>
+      <button class="tab subject-only" data-view="subject" type="button">หน้าวิชา</button>
+      <button class="tab subject-only" data-view="lessons" type="button">อ่านเนื้อหา</button>
+      <button class="tab subject-only" data-view="quizSelect" type="button">แบบทดสอบ</button>
+      <button class="tab subject-only" data-view="results" type="button">ผลการทำ</button>
+    </nav>
+
+    <main>
+      <section id="view-home" class="view active">
+        <div class="welcome card">
+          <h2>เลือกวิชาที่ต้องการเรียน</h2>
+          <div class="welcome-actions">
+            <button class="secondary go-settings" type="button">⚙ ตั้งค่าเสียงอ่าน</button>
+          </div>
+        </div>
+        <div id="subjectGrid" class="subject-grid"></div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ตั้งค่าเสียงอ่าน</span>
+            <h2>เลือกเสียงให้ฟังชัดและสบายหู</h2>
+            <p class="muted">ตั้งค่าครั้งเดียว แล้วระบบจะจำไว้ให้ ใช้กับบทเรียนและแบบทดสอบทั้งหมด</p>
+          </div>
+        </div>
+
+        <div class="settings-layout">
+          <section class="card settings-main">
+            <div class="settings-head">
+              <div>
+                <span class="pill">Microsoft Edge Neural</span>
+                <h3>เสียงหลักของระบบ</h3>
+                <p class="muted">ระบบจะใช้เสียงที่คุณเลือกเพียงเสียงเดียว และอ่านเป็นช่วงสั้น ๆ พร้อมเว้นจังหวะให้จับใจความง่ายขึ้น</p>
+              </div>
+              <div class="status-chip" id="speechStatus">กำลังตรวจสอบระบบเสียง…</div>
+            </div>
+
+            <div class="settings-grid">
+              <div class="setting-card">
+                <label for="speechVoice" class="setting-label">เสียง</label>
+                <select id="speechVoice" class="select voice-select" aria-label="เลือกเสียงภาษาไทย"></select>
+                <p class="setting-help">แนะนำ Premwadee ถ้าต้องการโทนผู้หญิงชัด ๆ</p>
+              </div>
+
+              <div class="setting-card">
+                <div class="setting-row">
+                  <label for="speechRate" class="setting-label">ความเร็ว</label>
+                  <span id="speechRateValue" class="rate-badge">0.90x</span>
+                </div>
+                <input id="speechRate" type="range" min="0.75" max="1.05" step="0.05" value="0.90" />
+                <p class="setting-help">ค่าประมาณ 0.85x–0.95x มักฟังเข้าใจง่าย</p>
+              </div>
+
+              <div class="setting-card action-card">
+                <div>
+                  <div class="setting-label">ทดลองเสียง</div>
+                  <p class="setting-help">ฟังตัวอย่างก่อนเริ่มเรียนจริง</p>
+                </div>
+                <button id="testSpeechBtn" class="primary large" type="button">▶ ทดลองเสียง</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="card settings-side">
+            <h3>เคล็ดลับ</h3>
+            <ul class="quick-tips">
+              <li>ถ้าฟังเร็วไป ให้ลดความเร็วลงเล็กน้อย</li>
+              <li>ถ้าชอบเสียงผู้หญิง ให้เลือก Premwadee หรือ Achara</li>
+              <li>โจทย์และตัวเลือกจะถูกเตรียมเสียงพร้อมกันล่วงหน้า เพื่อให้เว้นจังหวะชัดโดยไม่ต้องรอทีละช่วง</li>
+              <li>ถ้าระบบเสียงออนไลน์มีปัญหา ระบบจะหยุดและแจ้งเตือนแทนการเปลี่ยนไปใช้เสียงอื่น</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-subject" class="view">
+        <button class="ghost back-subjects" type="button">← วิชาทั้งหมด</button>
+        <div id="subjectHero" class="hero card"></div>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">เนื้อหาในวิชานี้</span>
+            <h2>เลือกบทเรียน</h2>
+          </div>
+        </div>
+        <div id="homeLessonGrid" class="lesson-grid"></div>
+      </section>
+
+      <section id="view-lessons" class="view">
+        <div class="section-heading split">
+          <div>
+            <button class="ghost back-to-subject" type="button">← หน้าวิชา</button>
+            <span id="lessonSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2 id="lessonTitle">บทเรียน</h2>
+          </div>
+          <select id="lessonSelect" class="select" aria-label="เลือกบทเรียน"></select>
+        </div>
+        <div class="audio-toolbar card compact">
+          <button id="readLessonBtn" class="primary" type="button">🔊 อ่านบทนี้ทั้งหมด</button>
+          <span class="muted">ตั้งค่าเสียงได้ที่แท็บ “เสียงอ่าน”</span>
+        </div>
+        <div id="lessonContent" class="lesson-content"></div>
+        <div class="lesson-bottom-actions">
+          <button id="lessonBackBtn" class="secondary large" type="button">← กลับหน้าวิชา</button>
+        </div>
+      </section>
+
+      <section id="view-quizSelect" class="view">
+        <div class="section-heading">
+          <div>
+            <button class="ghost back-to-subject" type="button">← หน้าวิชา</button>
+            <span id="quizSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2>แบบทดสอบ</h2>
+          </div>
+        </div>
+        <div id="quizSetGrid" class="quiz-set-grid"></div>
+      </section>
+
+      <section id="view-quiz" class="view">
+        <div class="quiz-topline">
+          <button id="backToQuizSelect" class="ghost" type="button">← ออกจากแบบทดสอบ</button>
+          <div class="quiz-progress-wrap">
+            <div class="quiz-meta"><span id="quizSetName"></span><span id="quizProgressText"></span></div>
+            <div class="progress"><span id="quizProgressBar"></span></div>
+          </div>
+        </div>
+
+        <article class="quiz-card card">
+          <div class="question-source-row">
+            <span id="questionSource" class="source-badge"></span>
+            <button id="readQuestionAllBtn" class="listen-btn" type="button"><span class="btn-icon speaker-icon" aria-hidden="true">🔊</span><span>อ่านโจทย์และตัวเลือก</span></button>
+          </div>
+          <h2 id="questionText" class="question-text"></h2>
+          <div id="questionMedia" class="question-media"></div>
+          <div id="optionList" class="option-list"></div>
+          <div id="feedbackBox" class="feedback hidden" role="status"></div>
+          <div class="quiz-actions">
+            <button id="checkAnswerBtn" class="primary large" type="button" disabled>ตรวจคำตอบ</button>
+            <button id="nextQuestionBtn" class="primary large hidden" type="button">ข้อต่อไป</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="view-results" class="view">
+        <div class="section-heading">
+          <div>
+            <button class="ghost back-to-subject" type="button">← หน้าวิชา</button>
+            <span id="resultSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2>คะแนนล่าสุด</h2>
+          </div>
+        </div>
+        <div id="resultContent" class="result-wrap"></div>
+      </section>
+    </main>
+
+    <footer></footer>
+  </div>
+
+  <script src="data.js?v=20260909S"></script>
+  <script src="app.js?v=20260909S"></script>
 </body>
 </html>
