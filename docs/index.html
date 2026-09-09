@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>กำลังเปิดแบบเรียน...</title>
+<style>body{font-family:system-ui,sans-serif;background:#f5f9fc;color:#18324a;display:grid;place-items:center;min-height:100vh;margin:0}.loading{padding:24px;text-align:center}</style>
+</head>
+<body><div class="loading">กำลังเปิดแบบเรียน…</div>
+<script>
+(async()=>{
+  try{
+    const parts=await Promise.all([0,1,2,3,4].map(i=>fetch(`p${i}.txt?v=R`,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`p${i}`);return r.text()})));
+    const bin=atob(parts.join('').trim());
+    const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const text=await new Response(stream).text();
+    const b=JSON.parse(text);
+    let html=b['index.html'];
+    html=html.replace(/<link rel="stylesheet" href="styles\.css[^"]*" \/>/,`<style>${b['styles.css']}</style>`);
+    html=html.replace(/<script src="data\.js[^"]*"><\/script>/,`<script>${b['data.js'].replace(/<\/script/gi,'<\\/script')}</script>`);
+    html=html.replace(/<script src="app\.js[^"]*"><\/script>/,`<script>${b['app.js'].replace(/<\/script/gi,'<\\/script')}</script>`);
+    document.open();document.write(html);document.close();
+  }catch(e){
+    document.body.innerHTML='<div class="loading"><h2>เปิดเว็บไม่สำเร็จ</h2><p>กรุณารีเฟรชหน้าอีกครั้ง</p></div>';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
