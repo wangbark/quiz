@@ -3,31 +3,253 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
 <title>Game Lock</title>
 <style>
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#eef6fb;font-family:Sarabun,"Segoe UI",Tahoma,sans-serif}
-iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
-#status{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#36566c;font-size:17px;font-weight:600}
-#status small{display:block;margin-top:8px;font-size:13px;font-weight:400;color:#748b9a}
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:"Sarabun","Segoe UI",sans-serif;color:#18364a}
+body{
+  background:
+    radial-gradient(circle at 12% 8%,rgba(255,255,255,.98) 0 13%,transparent 36%),
+    radial-gradient(circle at 94% 10%,rgba(154,218,250,.40),transparent 34%),
+    radial-gradient(circle at 12% 96%,rgba(203,188,255,.25),transparent 34%),
+    linear-gradient(145deg,#eef8fd,#e5f2f9 55%,#f1f2fb);
+  padding:22px 14px 48px;
+}
+.shell{width:min(980px,100%);margin:auto}
+.head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:4px 4px 18px}
+h1{margin:0;font-size:30px;letter-spacing:-.4px}.sub{font-size:13px;color:#6a8292;margin-top:4px}
+.refresh{border:0;border-radius:16px;padding:10px 15px;background:rgba(255,255,255,.62);color:#31556d;font:600 14px inherit;cursor:pointer}
+.panel{
+  border-radius:30px;background:rgba(255,255,255,.60);
+  backdrop-filter:blur(26px) saturate(145%);-webkit-backdrop-filter:blur(26px) saturate(145%);
+  box-shadow:0 22px 60px rgba(43,83,109,.11);padding:20px;
+}
+.machine-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.machine{
+  border:0;text-align:left;cursor:pointer;border-radius:22px;padding:16px;
+  background:rgba(224,241,250,.82);color:#1f4359;min-height:112px;
+  transition:.14s ease;position:relative
+}
+.machine:hover{transform:translateY(-1px);background:rgba(211,235,248,.95)}
+.machine.selected{background:rgba(196,229,246,.98);box-shadow:0 0 0 3px rgba(81,157,200,.12)}
+.machine-name{font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:72px}
+.machine-ip{font-size:12px;color:#6a8495;margin-top:2px}
+.state{font-size:14px;font-weight:600;margin-top:18px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;background:#9aaab4}
+.online .dot{background:#3ca66d}.warn .dot{background:#df9c33}.locked .dot{background:#d05d69}
+.badge{position:absolute;right:13px;top:13px;font-size:11px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.66);color:#668092}
+.empty{padding:54px 18px;text-align:center;color:#708796}
+.manage{margin-top:16px;display:none}.manage.show{display:block}
+.manage-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
+.manage-name{font-size:21px;font-weight:700}.manage-status{font-size:13px;color:#678092;text-align:right}
+.pin-label{text-align:center;color:#637e8e;font-size:13px;font-weight:600;margin:8px 0 9px}
+.pin{display:flex;justify-content:center;gap:7px;margin-bottom:18px}
+.pin input{
+  width:44px;height:52px;border:0;outline:0;border-radius:17px;background:rgba(213,236,248,.92);
+  text-align:center;font:700 22px "Sarabun";color:#274d63
+}
+.pin input:focus{background:rgba(195,228,245,.98)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+button.action,.minutes{
+  border:0;outline:0;border-radius:18px;min-height:48px;font:600 15px "Sarabun";color:#24485f
+}
+button.action{cursor:pointer;background:rgba(215,238,249,.9)}
+button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transform:scale(.98)}
+.custom-title{text-align:center;margin:22px 0 9px;color:#667f90;font-size:13px;font-weight:600}
+.custom{display:grid;grid-template-columns:1fr 1.35fr;gap:9px}
+.minutes{width:100%;padding:0 14px;background:rgba(215,238,249,.9);text-align:center;font-weight:700;font-size:17px}
+.admin{width:100%;margin-top:16px}.lock-now{width:100%;margin-top:9px!important;background:rgba(249,225,230,.92)!important;color:#a13f49!important}
+.msg{min-height:25px;text-align:center;margin-top:14px;font-size:13px;font-weight:600}.ok{color:#26764f}.err{color:#aa3f49}
+@media(max-width:620px){
+ body{padding:14px 10px 34px}.head{align-items:center}.panel{border-radius:25px;padding:14px}
+ h1{font-size:26px}.machine-grid{grid-template-columns:1fr}
+ .quick{grid-template-columns:1fr 1fr}.custom{grid-template-columns:1fr}
+ .pin{gap:4px}.pin input{width:38px;height:48px;border-radius:14px;font-size:20px}
+ .manage-head{display:block}.manage-status{text-align:left;margin-top:4px}
+}
 </style>
 </head>
 <body>
-<div id="status">กำลังเชื่อมต่อ Game Lock…<small>กำลังค้นหาเครื่องปลายทาง</small></div>
-<iframe id="app" hidden title="Game Lock Admin"></iframe>
+<div class="shell">
+  <div class="head">
+    <div><h1>Game Lock</h1><div class="sub">เลือกเครื่องที่ต้องการจัดการ</div></div>
+    <button id="refresh" class="refresh">รีเฟรช</button>
+  </div>
+
+  <section class="panel">
+    <div id="machines" class="machine-grid"><div class="empty">กำลังค้นหาเครื่อง…</div></div>
+
+    <div id="manage" class="manage">
+      <div class="manage-head">
+        <div>
+          <div id="manageName" class="manage-name"></div>
+          <div id="manageIp" class="machine-ip"></div>
+        </div>
+        <div id="manageStatus" class="manage-status"></div>
+      </div>
+
+      <div class="pin-label">รหัส PIN</div>
+      <div class="pin" id="pin">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      </div>
+
+      <div class="quick">
+        <button class="action" data-min="5">5 นาที</button>
+        <button class="action" data-min="10">10 นาที</button>
+        <button class="action" data-min="60">1 ชั่วโมง</button>
+        <button class="action" data-min="120">2 ชั่วโมง</button>
+      </div>
+
+      <div class="custom-title">กำหนดเวลาเอง</div>
+      <div class="custom">
+        <input id="minutes" class="minutes" type="number" min="1" max="1440" value="30" inputmode="numeric">
+        <button id="customUnlock" class="action">ปลดตามเวลานี้</button>
+      </div>
+
+      <button id="adminMode" class="action admin">Admin ไม่จำกัดเวลา</button>
+      <button id="lockNow" class="action lock-now">ล็อกตอนนี้</button>
+      <div id="msg" class="msg"></div>
+    </div>
+  </section>
+</div>
+
 <script>
-(async()=>{
- const s=document.getElementById('status'),f=document.getElementById('app');
+const REPO_POINTER='https://raw.githubusercontent.com/wangbark/quiz/main/public-url.txt';
+const $=id=>document.getElementById(id);
+const pins=[...document.querySelectorAll('#pin input')];
+let central='', machines=[], selectedId='', refreshBusy=false;
+
+function pinValue(){return pins.map(x=>x.value).join('')}
+function clearPin(){pins.forEach(x=>x.value='');pins[0].focus()}
+function msg(t,ok){$('msg').className='msg '+(ok?'ok':'err');$('msg').textContent=t||''}
+function fmt(sec){
+ sec=Math.max(0,Number(sec)||0);
+ const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
+ if(h)return `${h} ชม. ${m} นาที`;
+ if(m)return `${m} นาที ${s} วินาที`;
+ return `${s} วินาที`;
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function timeoutFetch(url,opt={},ms=4500){
+ const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
+ return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
+}
+async function getCentral(){
+ const r=await timeoutFetch(REPO_POINTER+'?t='+Date.now(),{cache:'no-store'},5000);
+ if(!r.ok)throw new Error('ไม่พบเซิร์ฟเวอร์หลัก');
+ const u=(await r.text()).trim().replace(/\/+$/,'');
+ if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i.test(u))throw new Error('เซิร์ฟเวอร์หลักยังไม่พร้อม');
+ central=u;return u;
+}
+async function probe(m){
  try{
-   const r=await fetch('https://raw.githubusercontent.com/wangbark/quiz/main/lock-public-url.txt?t='+Date.now(),{cache:'no-store'});
-   if(!r.ok) throw new Error();
-   const u=(await r.text()).trim().replace(/\/+$/,'');
-   if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i.test(u)) throw new Error();
-   f.onload=()=>{f.hidden=false;s.style.display='none'};
-   f.src=u+'/admin?t='+Date.now();
+   const r=await timeoutFetch(m.publicUrl.replace(/\/+$/,'')+'/api/state',{cache:'no-store'},3500);
+   if(!r.ok)throw new Error();
+   const s=await r.json();
+   return {...m,online:true,state:s};
+ }catch(e){return {...m,online:false,state:null}}
+}
+function stateText(m){
+ if(!m.online)return 'ออฟไลน์';
+ const s=m.state||{};
+ if(s.adminMode)return 'Admin ไม่จำกัดเวลา';
+ if(s.locked)return 'ล็อกอยู่';
+ return 'ใช้งานได้ • เหลือ '+fmt(s.remainingSeconds);
+}
+function stateClass(m){
+ if(!m.online)return '';
+ if(m.state?.adminMode)return 'warn';
+ if(m.state?.locked)return 'locked';
+ return 'online';
+}
+function render(){
+ const host=$('machines');
+ if(!machines.length){host.innerHTML='<div class="empty">ยังไม่พบเครื่องที่ติดตั้ง Game Lock</div>';return}
+ host.innerHTML=machines.map(m=>`
+   <button class="machine ${stateClass(m)} ${selectedId===m.machineId?'selected':''}" data-id="${escapeHtml(m.machineId)}">
+     <div class="badge">${m.online?'ออนไลน์':'ออฟไลน์'}</div>
+     <div class="machine-name">${escapeHtml(m.name||m.machineName||'Unknown')}</div>
+     <div class="machine-ip">${escapeHtml(m.ip||m.localIp||'')}</div>
+     <div class="state"><span class="dot"></span>${escapeHtml(stateText(m))}</div>
+   </button>`).join('');
+ [...host.querySelectorAll('.machine')].forEach(b=>b.onclick=()=>selectMachine(b.dataset.id));
+ updateManage();
+}
+function selectMachine(id){selectedId=id;render();const m=machines.find(x=>x.machineId===id);if(m?.online)pins[0].focus()}
+function updateManage(){
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m){$('manage').classList.remove('show');return}
+ $('manage').classList.add('show');
+ $('manageName').textContent=m.name||m.machineName||'Unknown';
+ $('manageIp').textContent=m.ip||m.localIp||'';
+ $('manageStatus').textContent=stateText(m);
+ [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
+}
+async function loadMachines(){
+ if(refreshBusy)return;refreshBusy=true;
+ try{
+   if(!central)await getCentral();
+   let r=await timeoutFetch(central+'/api/gamelock/machines?t='+Date.now(),{cache:'no-store'},5000);
+   if(!r.ok){central='';await getCentral();r=await timeoutFetch(central+'/api/gamelock/machines?t='+Date.now(),{cache:'no-store'},5000)}
+   if(!r.ok)throw new Error('โหลดรายชื่อเครื่องไม่ได้');
+   const list=await r.json();
+   machines=await Promise.all((Array.isArray(list)?list:[]).map(probe));
+   if(selectedId&&!machines.some(x=>x.machineId===selectedId))selectedId='';
+   render();
  }catch(e){
-   s.innerHTML='ยังเชื่อมต่อเครื่องไม่ได้<small>ตรวจสอบว่าเครื่องเปิดอยู่และมี Internet แล้วลองรีเฟรชหน้านี้</small>';
- }
-})();
+   $('machines').innerHTML='<div class="empty">ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้</div>';
+ }finally{refreshBusy=false}
+}
+async function command(path,body){
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
+ const pin=pinValue();
+ if(pin.length<4){msg('กรอกรหัส PIN อย่างน้อย 4 หลัก',false);pins[0].focus();return}
+ msg('กำลังส่งคำสั่ง…',true);
+ try{
+   const r=await timeoutFetch(m.publicUrl.replace(/\/+$/,'')+path,{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({...body,pin})
+   },6000);
+   const d=await r.json();
+   if(!r.ok||d.ok===false)throw new Error(d.error||'ทำรายการไม่สำเร็จ');
+   msg('สำเร็จ',true);clearPin();
+   const updated=await probe(m);
+   machines=machines.map(x=>x.machineId===m.machineId?updated:x);render();
+ }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin()}
+}
+pins.forEach((el,i)=>{
+ el.addEventListener('input',()=>{el.value=el.value.replace(/\D/g,'').slice(0,1);if(el.value&&i<pins.length-1)pins[i+1].focus()});
+ el.addEventListener('keydown',e=>{
+  if(e.key==='Backspace'&&!el.value&&i>0){pins[i-1].value='';pins[i-1].focus()}
+  if(e.key==='ArrowLeft'&&i>0)pins[i-1].focus();
+  if(e.key==='ArrowRight'&&i<pins.length-1)pins[i+1].focus();
+ });
+ el.addEventListener('paste',e=>{
+  const ds=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,8);
+  if(!ds)return;e.preventDefault();pins.forEach((p,j)=>p.value=ds[j]||'');pins[Math.max(0,Math.min(ds.length,8)-1)].focus();
+ });
+});
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>command('/api/admin/unlock',{minutes:Number(b.dataset.min)}));
+$('customUnlock').onclick=()=>{
+ const n=Math.floor(Number($('minutes').value)||0);
+ if(n<1||n>1440){msg('กำหนดได้ 1–1440 นาที',false);return}
+ command('/api/admin/unlock',{minutes:n});
+};
+$('adminMode').onclick=()=>command('/api/admin/mode',{enabled:true});
+$('lockNow').onclick=()=>command('/api/admin/mode',{enabled:false});
+$('refresh').onclick=()=>loadMachines();
+loadMachines();
+setInterval(loadMachines,8000);
 </script>
 </body>
 </html>
