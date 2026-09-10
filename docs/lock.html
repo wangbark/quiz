@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Game Lock</title>
+<style>
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#eef6fb;font-family:Sarabun,"Segoe UI",Tahoma,sans-serif}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+#status{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#36566c;font-size:17px;font-weight:600}
+#status small{display:block;margin-top:8px;font-size:13px;font-weight:400;color:#748b9a}
+</style>
+</head>
+<body>
+<div id="status">กำลังเชื่อมต่อ Game Lock…<small>กำลังค้นหาเครื่องปลายทาง</small></div>
+<iframe id="app" hidden title="Game Lock Admin"></iframe>
+<script>
+(async()=>{
+ const s=document.getElementById('status'),f=document.getElementById('app');
+ try{
+   const r=await fetch('https://raw.githubusercontent.com/wangbark/quiz/main/lock-public-url.txt?t='+Date.now(),{cache:'no-store'});
+   if(!r.ok) throw new Error();
+   const u=(await r.text()).trim().replace(/\/+$/,'');
+   if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i.test(u)) throw new Error();
+   f.onload=()=>{f.hidden=false;s.style.display='none'};
+   f.src=u+'/admin?t='+Date.now();
+ }catch(e){
+   s.innerHTML='ยังเชื่อมต่อเครื่องไม่ได้<small>ตรวจสอบว่าเครื่องเปิดอยู่และมี Internet แล้วลองรีเฟรชหน้านี้</small>';
+ }
+})();
+</script>
+</body>
+</html>
