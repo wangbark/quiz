@@ -66,10 +66,28 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
 .minutes{width:100%;padding:0 14px;background:rgba(215,238,249,.9);text-align:center;font-weight:700;font-size:17px}
 .admin{width:100%;margin-top:16px}.lock-now{width:100%;margin-top:9px!important;background:rgba(249,225,230,.92)!important;color:#a13f49!important}
 .msg{min-height:25px;text-align:center;margin-top:14px;font-size:13px;font-weight:600}.ok{color:#26764f}.err{color:#aa3f49}
+
+.remote-tools{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
+.view-screen{background:rgba(218,238,248,.96)!important;color:#27546e!important}
+.shutdown{background:rgba(249,225,230,.92)!important;color:#a13f49!important}
+.action svg{width:18px;height:18px;vertical-align:-4px;margin-right:7px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.screen-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(18,38,51,.58);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.screen-overlay.show{display:flex}
+.screen-card{width:min(1180px,96vw);max-height:94vh;border-radius:28px;background:rgba(246,251,254,.96);box-shadow:0 28px 90px rgba(0,0,0,.28);padding:14px;overflow:hidden}
+.screen-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 4px 12px}
+.screen-title{font-size:18px;font-weight:700}.screen-sub{font-size:12px;color:#6b8392;margin-top:2px}
+.screen-close{width:42px;height:42px;border:0;border-radius:15px;background:#dfedf4;color:#31566c;font:700 25px/1 inherit;cursor:pointer}
+.screen-stage{position:relative;display:grid;place-items:center;min-height:280px;max-height:calc(94vh - 100px);overflow:auto;border-radius:20px;background:#101820}
+.screen-stage img{display:block;width:100%;height:auto;max-height:calc(94vh - 118px);object-fit:contain;background:#101820}
+.screen-wait{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#dcebf3;font-weight:600;background:linear-gradient(145deg,#162631,#0c151b)}
+.screen-wait.hidden{display:none}
+.screen-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#46ae72;margin-right:6px;box-shadow:0 0 0 4px rgba(70,174,114,.12)}
+
 @media(max-width:620px){
  body{padding:14px 10px 34px}.head{align-items:center}.panel{border-radius:25px;padding:14px}
  h1{font-size:26px}.machine-grid{grid-template-columns:1fr}
  .quick{grid-template-columns:1fr 1fr}.custom{grid-template-columns:1fr}
+ .remote-tools{grid-template-columns:1fr}
  .pin{gap:4px}.pin input{width:38px;height:48px;border-radius:14px;font-size:20px}
  .manage-head{display:flex}.manage-right{margin-left:auto}.manage-status{text-align:right;margin-top:0}
 }
@@ -132,16 +150,41 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
 
       <button id="adminMode" class="action admin">Admin ไม่จำกัดเวลา</button>
       <button id="lockNow" class="action lock-now">ล็อกตอนนี้</button>
+
+      <div class="remote-tools">
+        <button id="viewScreen" class="action view-screen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6S2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>ดูหน้าจอ
+        </button>
+        <button id="shutdown" class="action shutdown">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8v8.1"></path><path d="M7.1 5.8a8 8 0 1 0 9.8 0"></path></svg>ปิดเครื่อง
+        </button>
+      </div>
       <div id="msg" class="msg"></div>
     </div>
   </section>
+</div>
+
+<div id="screenOverlay" class="screen-overlay" aria-hidden="true">
+  <div class="screen-card">
+    <div class="screen-head">
+      <div>
+        <div id="screenTitle" class="screen-title">ดูหน้าจอ</div>
+        <div class="screen-sub"><span class="screen-live"></span>ดูอย่างเดียว • ส่งภาพเฉพาะตอนเปิดหน้านี้</div>
+      </div>
+      <button id="screenClose" class="screen-close" type="button" aria-label="ปิด">×</button>
+    </div>
+    <div class="screen-stage">
+      <img id="screenImage" alt="หน้าจอเครื่องที่เลือก" hidden>
+      <div id="screenWait" class="screen-wait">กำลังขอภาพจากเครื่อง…</div>
+    </div>
+  </div>
 </div>
 
 <script>
 const REPO_POINTER='https://raw.githubusercontent.com/wangbark/quiz/main/public-url.txt';
 const $=id=>document.getElementById(id);
 const pins=[...document.querySelectorAll('#pin input')];
-let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false;
+let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false, screenOpen=false, screenMachineId='', screenPin='', screenToken='', screenTimer=null, screenKeepalive=null, screenObjectUrl='';
 
 function pinValue(){return pins.map(x=>x.value).join('')}
 function clearPin(){pins.forEach(x=>x.value='');pins[0].focus()}
@@ -154,6 +197,7 @@ function fmt(sec){
  return `${s} วินาที`;
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function supportsBN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260910210000}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -209,6 +253,7 @@ function render(){
  updateManage();
 }
 function selectMachine(id){
+ if(screenOpen&&screenMachineId!==id)closeScreenView();
  if(selectedId===id){
    manageOpen=!manageOpen;
  }else{
@@ -230,6 +275,11 @@ function updateManage(){
  $('quizToggle').checked=quizEnabled;
  $('quizToggle').disabled=!m.online||!m.stateReachable;
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
+ const bn=supportsBN(m);
+ $('viewScreen').disabled=!m.online||!bn;
+ $('shutdown').disabled=!m.online||!bn;
+ $('viewScreen').title=bn?'ดูหน้าจอแบบ View Only':'รอเครื่องอัปเดตเป็น BN';
+ $('shutdown').title=bn?'ปิดเครื่องระยะไกล':'รอเครื่องอัปเดตเป็น BN';
 }
 async function loadMachines(){
  if(refreshBusy)return;refreshBusy=true;
@@ -241,10 +291,27 @@ async function loadMachines(){
    const list=await r.json();
    machines=await Promise.all((Array.isArray(list)?list:[]).map(probe));
    if(selectedId&&!machines.some(x=>x.machineId===selectedId)){selectedId='';manageOpen=false;}
+   if(screenOpen){const sm=machines.find(x=>x.machineId===screenMachineId);if(!sm||!sm.online)closeScreenView(false);}
    render();
  }catch(e){
    $('machines').innerHTML='<div class="empty">ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้</div>';
  }finally{refreshBusy=false}
+}
+async function sendQueued(m,action,body,pin){
+ if(!m||!m.online)throw new Error('เครื่องนี้ออฟไลน์');
+ const r=await timeoutFetch(central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+'/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body,pin})},6000);
+ const queued=await r.json();
+ if(!r.ok||queued.ok===false||!queued.commandId)throw new Error(queued.error||'ส่งคำสั่งไม่ได้');
+ const resultUrl=central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+'/command/'+encodeURIComponent(queued.commandId)+'/result';
+ for(let i=0;i<36;i++){
+   await new Promise(resolve=>setTimeout(resolve,450));
+   const rr=await timeoutFetch(resultUrl+'?t='+Date.now(),{cache:'no-store'},4000);
+   const d=await rr.json();
+   if(rr.status===202&&d.pending)continue;
+   if(!rr.ok||d.ok===false)throw new Error(d.error||'ทำรายการไม่สำเร็จ');
+   return d;
+ }
+ throw new Error('เครื่องรับคำสั่งแล้ว แต่ยังไม่ตอบกลับ');
 }
 async function command(action,body){
  const m=machines.find(x=>x.machineId===selectedId);
@@ -253,51 +320,78 @@ async function command(action,body){
  if(pin.length<4){msg('กรอกรหัส PIN อย่างน้อย 4 หลัก',false);pins[0].focus();return false}
  msg('กำลังส่งคำสั่ง…',true);
  try{
-   const r=await timeoutFetch(
-     central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+'/command',
-     {
-       method:'POST',
-       headers:{'Content-Type':'application/json'},
-       body:JSON.stringify({action,...body,pin})
-     },
-     6000
-   );
-   const queued=await r.json();
-   if(!r.ok||queued.ok===false||!queued.commandId)
-     throw new Error(queued.error||'ส่งคำสั่งไม่ได้');
-
-   let result=null;
-   const resultUrl=
-     central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+
-     '/command/'+encodeURIComponent(queued.commandId)+'/result';
-
-   for(let i=0;i<34;i++){
-     await new Promise(resolve=>setTimeout(resolve,450));
-     const rr=await timeoutFetch(resultUrl+'?t='+Date.now(),{cache:'no-store'},4000);
-     const d=await rr.json();
-
-     if(rr.status===202&&d.pending)continue;
-     result={response:rr,data:d};
-     break;
-   }
-
-   if(!result)
-     throw new Error('เครื่องรับคำสั่งแล้ว แต่ยังไม่ตอบกลับ');
-
-   if(!result.response.ok||result.data.ok===false)
-     throw new Error(result.data.error||'ทำรายการไม่สำเร็จ');
-
-   msg('สำเร็จ',true);
-   clearPin();
-
+   await sendQueued(m,action,body,pin);
+   msg('สำเร็จ',true);clearPin();
    await new Promise(resolve=>setTimeout(resolve,650));
    await loadMachines();
    return true;
- }catch(e){
-   msg(e.message||'ทำรายการไม่สำเร็จ',false);
-   clearPin();
-   return false;
- }
+ }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin();return false}
+}
+function setScreenWaiting(text){
+ $('screenWait').textContent=text||'กำลังขอภาพจากเครื่อง…';
+ $('screenWait').classList.remove('hidden');
+ $('screenImage').hidden=true;
+}
+async function refreshScreenFrame(){
+ if(!screenOpen||!screenMachineId||!screenToken||!central)return;
+ try{
+   const url=central+'/api/gamelock/machine/'+encodeURIComponent(screenMachineId)+'/screen?token='+encodeURIComponent(screenToken)+'&t='+Date.now();
+   const r=await timeoutFetch(url,{cache:'no-store'},5500);
+   if(r.status===202){setScreenWaiting('กำลังรับภาพจากเครื่อง…');return}
+   if(!r.ok)throw new Error('รับภาพไม่ได้');
+   const blob=await r.blob();
+   if(!blob.size)throw new Error('ยังไม่มีภาพ');
+   const next=URL.createObjectURL(blob);
+   const img=$('screenImage');
+   img.onload=()=>{if(screenObjectUrl)URL.revokeObjectURL(screenObjectUrl);screenObjectUrl=next};
+   img.src=next;img.hidden=false;$('screenWait').classList.add('hidden');
+ }catch(e){if(screenOpen)setScreenWaiting('กำลังเชื่อมต่อภาพใหม่…')}
+}
+async function keepScreenAlive(){
+ if(!screenOpen||!screenPin||!screenMachineId)return;
+ const m=machines.find(x=>x.machineId===screenMachineId);
+ if(!m||!m.online){closeScreenView(false);return}
+ try{
+   const d=await sendQueued(m,'screen',{enabled:true},screenPin);
+   if(d.viewToken)screenToken=d.viewToken;
+ }catch(e){closeScreenView(false)}
+}
+async function startScreenView(){
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
+ if(!supportsBN(m)){msg('รอเครื่องอัปเดตเป็น BN ก่อน',false);return}
+ const pin=pinValue();
+ if(pin.length<4){msg('กรอกรหัส PIN ก่อนดูหน้าจอ',false);pins[0].focus();return}
+ msg('กำลังเปิดดูหน้าจอ…',true);
+ try{
+   const d=await sendQueued(m,'screen',{enabled:true},pin);
+   if(!d.viewToken)throw new Error('เปิดดูหน้าจอไม่ได้');
+   screenOpen=true;screenMachineId=m.machineId;screenPin=pin;screenToken=d.viewToken;
+   pins.forEach(x=>x.value='');
+   $('screenTitle').textContent='หน้าจอ • '+(m.name||m.machineName||'Unknown');
+   $('screenOverlay').classList.add('show');$('screenOverlay').setAttribute('aria-hidden','false');
+   setScreenWaiting('กำลังขอภาพจากเครื่อง…');
+   clearInterval(screenTimer);clearInterval(screenKeepalive);
+   screenTimer=setInterval(refreshScreenFrame,1250);
+   screenKeepalive=setInterval(keepScreenAlive,20000);
+   refreshScreenFrame();msg('',true);
+ }catch(e){msg(e.message||'เปิดดูหน้าจอไม่ได้',false)}
+}
+function closeScreenView(sendStop=true){
+ const id=screenMachineId,pin=screenPin;
+ screenOpen=false;screenMachineId='';screenPin='';screenToken='';
+ clearInterval(screenTimer);clearInterval(screenKeepalive);screenTimer=null;screenKeepalive=null;
+ $('screenOverlay').classList.remove('show');$('screenOverlay').setAttribute('aria-hidden','true');
+ $('screenImage').hidden=true;$('screenImage').removeAttribute('src');
+ if(screenObjectUrl){URL.revokeObjectURL(screenObjectUrl);screenObjectUrl=''}
+ if(sendStop&&id&&pin){const m=machines.find(x=>x.machineId===id);if(m&&m.online)sendQueued(m,'screen',{enabled:false},pin).catch(()=>{})}
+}
+async function shutdownSelected(){
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
+ if(!supportsBN(m)){msg('รอเครื่องอัปเดตเป็น BN ก่อน',false);return}
+ if(!confirm('ปิดเครื่อง '+(m.name||m.machineName||'')+' ตอนนี้?'))return;
+ await command('shutdown',{});
 }
 pins.forEach((el,i)=>{
  el.addEventListener('input',()=>{el.value=el.value.replace(/\D/g,'').slice(0,1);if(el.value&&i<pins.length-1)pins[i+1].focus()});
@@ -324,6 +418,12 @@ $('quizToggle').onchange=async()=>{
 };
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
+$('viewScreen').onclick=startScreenView;
+$('shutdown').onclick=shutdownSelected;
+$('screenClose').onclick=()=>closeScreenView();
+$('screenOverlay').addEventListener('click',e=>{if(e.target===$('screenOverlay'))closeScreenView()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&screenOpen)closeScreenView()});
+window.addEventListener('beforeunload',()=>closeScreenView());
 $('collapseManage').onclick=()=>{manageOpen=false;updateManage();};
 $('refresh').onclick=()=>loadMachines();
 loadMachines();
