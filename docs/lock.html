@@ -151,15 +151,23 @@ async function getCentral(){
  central=u;return u;
 }
 async function probe(m){
+ if(!m.online)return {...m,state:null,stateReachable:false};
  try{
-   const r=await timeoutFetch(m.publicUrl.replace(/\/+$/,'')+'/api/state',{cache:'no-store'},3500);
+   const r=await timeoutFetch(
+     central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+'/state?t='+Date.now(),
+     {cache:'no-store'},
+     6500
+   );
    if(!r.ok)throw new Error();
    const s=await r.json();
-   return {...m,online:true,state:s};
- }catch(e){return {...m,online:false,state:null}}
+   return {...m,state:s,stateReachable:true};
+ }catch(e){
+   return {...m,state:null,stateReachable:false};
+ }
 }
 function stateText(m){
  if(!m.online)return 'ออฟไลน์';
+ if(!m.stateReachable||!m.state)return 'ออนไลน์ • กำลังเชื่อมต่อ';
  const s=m.state||{};
  if(s.adminMode)return 'Admin ไม่จำกัดเวลา';
  if(s.locked)return 'ล็อกอยู่';
@@ -167,6 +175,7 @@ function stateText(m){
 }
 function stateClass(m){
  if(!m.online)return '';
+ if(!m.stateReachable||!m.state)return 'online';
  if(m.state?.adminMode)return 'warn';
  if(m.state?.locked)return 'locked';
  return 'online';
@@ -209,20 +218,26 @@ async function loadMachines(){
    $('machines').innerHTML='<div class="empty">ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้</div>';
  }finally{refreshBusy=false}
 }
-async function command(path,body){
+async function command(action,body){
  const m=machines.find(x=>x.machineId===selectedId);
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
  const pin=pinValue();
  if(pin.length<4){msg('กรอกรหัส PIN อย่างน้อย 4 หลัก',false);pins[0].focus();return}
  msg('กำลังส่งคำสั่ง…',true);
  try{
-   const r=await timeoutFetch(m.publicUrl.replace(/\/+$/,'')+path,{
-     method:'POST',headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({...body,pin})
-   },6000);
+   const r=await timeoutFetch(
+     central+'/api/gamelock/machine/'+encodeURIComponent(m.machineId)+'/command',
+     {
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({action,...body,pin})
+     },
+     8000
+   );
    const d=await r.json();
-   if(!r.ok||d.ok===false)throw new Error(d.error||'ทำรายการไม่สำเร็จ');
+   if(!r.ok||d.ok===false)throw new Error(d.error||d.detail||'ทำรายการไม่สำเร็จ');
    msg('สำเร็จ',true);clearPin();
+   await new Promise(resolve=>setTimeout(resolve,500));
    const updated=await probe(m);
    machines=machines.map(x=>x.machineId===m.machineId?updated:x);render();
  }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin()}
@@ -239,14 +254,14 @@ pins.forEach((el,i)=>{
   if(!ds)return;e.preventDefault();pins.forEach((p,j)=>p.value=ds[j]||'');pins[Math.max(0,Math.min(ds.length,8)-1)].focus();
  });
 });
-document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>command('/api/admin/unlock',{minutes:Number(b.dataset.min)}));
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>command('unlock',{minutes:Number(b.dataset.min)}));
 $('customUnlock').onclick=()=>{
  const n=Math.floor(Number($('minutes').value)||0);
  if(n<1||n>1440){msg('กำหนดได้ 1–1440 นาที',false);return}
- command('/api/admin/unlock',{minutes:n});
+ command('unlock',{minutes:n});
 };
-$('adminMode').onclick=()=>command('/api/admin/mode',{enabled:true});
-$('lockNow').onclick=()=>command('/api/admin/mode',{enabled:false});
+$('adminMode').onclick=()=>command('mode',{enabled:true});
+$('lockNow').onclick=()=>command('mode',{enabled:false});
 $('refresh').onclick=()=>loadMachines();
 loadMachines();
 setInterval(loadMachines,8000);
