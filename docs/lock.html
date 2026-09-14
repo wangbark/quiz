@@ -123,6 +123,14 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
         </label>
       </div>
 
+      <div class="setting-row">
+        <span>ซ่อนวิชาที่สอบผ่านแล้วในวันนี้</span>
+        <label class="switch" title="ผ่านแล้วจะซ่อนจนถึงวันถัดไป">
+          <input id="hidePassedToggle" type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
       <div class="pin-label">รหัส PIN</div>
       <div class="pin" id="pin">
         <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
@@ -198,6 +206,7 @@ function fmt(sec){
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function supportsBN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260910210000}
+function supportsBU(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260914213000}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -219,6 +228,7 @@ async function probe(m){
    remainingSeconds:Number(m.remainingSeconds)||0,
    adminMode:!!m.adminMode,
    quizEnabled:m.quizEnabled!==false,
+   hidePassedToday:m.hidePassedToday!==false,
    version:m.version||'',
    versionBuild:Number(m.versionBuild)||0
  };
@@ -274,6 +284,13 @@ function updateManage(){
  const quizEnabled=!(m.state&&m.state.quizEnabled===false);
  $('quizToggle').checked=quizEnabled;
  $('quizToggle').disabled=!m.online||!m.stateReachable;
+
+ const hidePassed=!(m.state&&m.state.hidePassedToday===false);
+ $('hidePassedToggle').checked=hidePassed;
+ const bu=supportsBU(m);
+ $('hidePassedToggle').disabled=!m.online||!m.stateReachable||!bu;
+ $('hidePassedToggle').title=bu?'ผ่านแล้วจะซ่อนจนถึงวันถัดไป':'รอเครื่องอัปเดตเป็น BU';
+
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
  $('viewScreen').disabled=!m.online||!bn;
@@ -415,6 +432,11 @@ $('quizToggle').onchange=async()=>{
  const desired=$('quizToggle').checked;
  const ok=await command('quiz',{enabled:desired});
  if(!ok)$('quizToggle').checked=!desired;
+};
+$('hidePassedToggle').onchange=async()=>{
+ const desired=$('hidePassedToggle').checked;
+ const ok=await command('hidePassed',{enabled:desired});
+ if(!ok)$('hidePassedToggle').checked=!desired;
 };
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
