@@ -201,6 +201,41 @@ const REPO_POINTER='https://raw.githubusercontent.com/wangbark/quiz/main/public-
 const $=id=>document.getElementById(id);
 const pins=[...document.querySelectorAll('#pin input')];
 let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false, screenOpen=false, screenMachineId='', screenPin='', screenToken='', screenTimer=null, screenKeepalive=null, screenObjectUrl='';
+const QUIZ_ALL_PENDING_KEY='quizweb-remote-quiz-all-pending-v1';
+let quizAllCommitBusy=false;
+
+function readQuizAllPendingMap(){
+ try{
+  const v=JSON.parse(localStorage.getItem(QUIZ_ALL_PENDING_KEY)||'{}');
+  return v&&typeof v==='object'?v:{};
+ }catch(_){return {}}
+}
+function writeQuizAllPendingMap(map){
+ try{localStorage.setItem(QUIZ_ALL_PENDING_KEY,JSON.stringify(map||{}))}catch(_){}
+}
+function getQuizAllPending(machineId){
+ if(!machineId)return null;
+ const map=readQuizAllPendingMap();
+ const p=map[machineId];
+ if(!p)return null;
+ if(Date.now()-Number(p.ts||0)>180000){
+  delete map[machineId];writeQuizAllPendingMap(map);return null;
+ }
+ return {desired:!!p.desired,status:p.status==='sync'?'sync':'pin',ts:Number(p.ts)||Date.now()};
+}
+function setQuizAllPending(machineId,desired,status='pin'){
+ if(!machineId)return;
+ const map=readQuizAllPendingMap();
+ map[machineId]={desired:!!desired,status,ts:Date.now()};
+ writeQuizAllPendingMap(map);
+}
+function clearQuizAllPending(machineId){
+ if(!machineId)return;
+ const map=readQuizAllPendingMap();
+ delete map[machineId];
+ writeQuizAllPendingMap(map);
+}
+
 
 function pinValue(){return pins.map(x=>x.value).join('')}
 function clearPin(){pins.forEach(x=>x.value='');pins[0].focus()}
@@ -302,12 +337,26 @@ function updateManage(){
  $('hidePassedToggle').title=bu?'ผ่านแล้วจะซ่อนจนถึงวันถัดไป':'รอเครื่องอัปเดตเป็น BU';
 
  const bw=supportsBW(m);
- const allMode=!!(m.state&&m.state.requireAllSubjects);
+ const serverAllMode=!!(m.state&&m.state.requireAllSubjects);
+ let pendingAll=getQuizAllPending(m.machineId);
+ if(
+   pendingAll &&
+   pendingAll.status==='sync' &&
+   serverAllMode===pendingAll.desired
+ ){
+   clearQuizAllPending(m.machineId);
+   pendingAll=null;
+ }
+ const allMode=pendingAll?pendingAll.desired:serverAllMode;
  $('quizAllToggle').checked=allMode;
- $('quizAllToggle').disabled=!m.online||!m.stateReachable||!bw;
- $('quizAllToggle').title=bw
-   ?'เปิด = ทำทุกวิชาให้ครบ แล้วใช้คะแนนเฉลี่ย 26–28 = 1 ชม., 29–30 = 2 ชม.'
-   :'รอเครื่องอัปเดตเป็น BW';
+ $('quizAllToggle').disabled=!m.online||!m.stateReachable||!bw||quizAllCommitBusy;
+ $('quizAllToggle').title=!bw
+   ?'รอเครื่องอัปเดตเป็น BW'
+   :pendingAll?.status==='pin'
+     ?'เลือกโหมดแล้ว • กรอก PIN ให้ครบเพื่อยืนยัน'
+     :pendingAll?.status==='sync'
+       ?'บันทึกแล้ว • กำลังรอเครื่องยืนยันสถานะ'
+       :'เปิด = ทำทุกวิชาให้ครบ แล้วใช้คะแนนเฉลี่ย 26–28 = 1 ชม., 29–30 = 2 ชม.';
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
@@ -362,6 +411,49 @@ async function command(action,body){
    return true;
  }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin();return false}
 }
+
+async function commitQuizAllPending(){
+ if(quizAllCommitBusy)return false;
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return false}
+ const pending=getQuizAllPending(m.machineId);
+ if(!pending)return false;
+ const pin=pinValue();
+ if(pin.length<4){
+  msg('เลือกโหมดไว้แล้ว • กรอก PIN ให้ครบเพื่อยืนยัน',true);
+  updateManage();
+  return false;
+ }
+ quizAllCommitBusy=true;
+ setQuizAllPending(m.machineId,pending.desired,'sync');
+ updateManage();
+ msg('กำลังบันทึกโหมดแบบทดสอบ…',true);
+ try{
+  await sendQueued(m,'quizModeAll',{enabled:pending.desired},pin);
+  clearPin();
+  msg(
+    pending.desired
+      ?'เปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ'
+      :'ปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ',
+    true
+  );
+  setQuizAllPending(m.machineId,pending.desired,'sync');
+  updateManage();
+  setTimeout(()=>loadMachines(),900);
+  setTimeout(()=>loadMachines(),2600);
+  return true;
+ }catch(e){
+  setQuizAllPending(m.machineId,pending.desired,'pin');
+  msg(e.message||'บันทึกโหมดไม่สำเร็จ',false);
+  clearPin();
+  updateManage();
+  return false;
+ }finally{
+  quizAllCommitBusy=false;
+  updateManage();
+ }
+}
+
 function setScreenWaiting(text){
  $('screenWait').textContent=text||'กำลังขอภาพจากเครื่อง…';
  $('screenWait').classList.remove('hidden');
@@ -429,7 +521,14 @@ async function shutdownSelected(){
  await command('shutdown',{});
 }
 pins.forEach((el,i)=>{
- el.addEventListener('input',()=>{el.value=el.value.replace(/\D/g,'').slice(0,1);if(el.value&&i<pins.length-1)pins[i+1].focus()});
+ el.addEventListener('input',()=>{
+  el.value=el.value.replace(/\D/g,'').slice(0,1);
+  if(el.value&&i<pins.length-1)pins[i+1].focus();
+  const m=machines.find(x=>x.machineId===selectedId);
+  if(m&&pinValue().length>=4&&getQuizAllPending(m.machineId)){
+    setTimeout(()=>commitQuizAllPending(),0);
+  }
+ });
  el.addEventListener('keydown',e=>{
   if(e.key==='Backspace'&&!el.value&&i>0){pins[i-1].value='';pins[i-1].focus()}
   if(e.key==='ArrowLeft'&&i>0)pins[i-1].focus();
@@ -457,9 +556,19 @@ $('hidePassedToggle').onchange=async()=>{
  if(!ok)$('hidePassedToggle').checked=!desired;
 };
 $('quizAllToggle').onchange=async()=>{
+ const m=machines.find(x=>x.machineId===selectedId);
+ if(!m){$('quizAllToggle').checked=!$('quizAllToggle').checked;return}
  const desired=$('quizAllToggle').checked;
- const ok=await command('quizModeAll',{enabled:desired});
- if(!ok)$('quizAllToggle').checked=!desired;
+ setQuizAllPending(m.machineId,desired,'pin');
+ updateManage();
+
+ if(pinValue().length<4){
+   msg('เลือกโหมดไว้แล้ว • กรอก PIN ให้ครบเพื่อยืนยัน',true);
+   pins[0].focus();
+   return;
+ }
+
+ await commitQuizAllPending();
 };
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
