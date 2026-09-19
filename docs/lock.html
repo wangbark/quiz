@@ -297,18 +297,18 @@ function updateManage(){
 
  const hidePassed=!(m.state&&m.state.hidePassedToday===false);
  const allMode=!!(m.state&&m.state.requireAllSubjects);
- $('hidePassedToggle').checked=hidePassed;
+ $('hidePassedToggle').checked=allMode ? true : hidePassed;
  const bu=supportsBU(m);
  $('hidePassedToggle').disabled=!m.online||!m.stateReachable||!bu||allMode;
  $('hidePassedToggle').title=allMode
-   ?'โหมดทุกวิชา: แสดงทุกวิชาไว้ตลอดวัน สวิตช์ซ่อนใช้เฉพาะโหมดทีละวิชา'
+   ?'โหมดทุกวิชา: วิชาที่ทำแล้วจะซ่อนอัตโนมัติ และกลับมาทุกวิชาเมื่อเวลาเล่นหมด'
    :(bu?'ผ่านแล้วจะซ่อนจนถึงวันถัดไป และเปิดกลับได้':'รอเครื่องอัปเดตเป็น BU');
 
  const bw=supportsBW(m);
  $('quizAllToggle').checked=allMode;
  $('quizAllToggle').disabled=!m.online||!m.stateReachable||!bw;
  $('quizAllToggle').title=bw
-   ?'เปิด = ทำทุกวิชาให้ครบ แล้วใช้คะแนนเฉลี่ย 26–28 = 1 ชม., 29–30 = 2 ชม.'
+   ?'เปิด = ทำทุกวิชาให้ครบ วิชาที่ทำแล้วจะซ่อน และเมื่อเวลาเล่นหมดจะเริ่มรอบใหม่ทั้งหมด'
    :'รอเครื่องอัปเดตเป็น BW';
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
