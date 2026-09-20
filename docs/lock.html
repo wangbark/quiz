@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -139,6 +139,14 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
         </label>
       </div>
 
+      <div class="setting-row">
+        <span>ดูเฉลยหลังตอบแต่ละข้อ</span>
+        <label class="switch" title="เปิด = แสดงถูก/ผิดและรอกด ไปข้อถัดไป • ปิด = ไม่เฉลยระหว่างทำและไปข้อต่อไปอัตโนมัติ">
+          <input id="quizReviewToggle" type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
       <div class="pin-label">รหัส PIN</div>
       <div class="pin" id="pin">
         <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
@@ -216,6 +224,7 @@ function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 function supportsBN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260910210000}
 function supportsBU(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260914213000}
 function supportsBW(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260916184000}
+function supportsCG(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -239,6 +248,7 @@ async function probe(m){
    quizEnabled:m.quizEnabled!==false,
    hidePassedToday:m.hidePassedToday!==false,
    requireAllSubjects:!!m.requireAllSubjects,
+   reviewEachQuestion:m.reviewEachQuestion!==false,
    version:m.version||'',
    versionBuild:Number(m.versionBuild)||0
  };
@@ -310,6 +320,14 @@ function updateManage(){
  $('quizAllToggle').title=bw
    ?'เปิด = ทำทุกวิชาให้ครบ วิชาที่ทำแล้วจะซ่อน และเมื่อเวลาเล่นหมดจะเริ่มรอบใหม่ทั้งหมด'
    :'รอเครื่องอัปเดตเป็น BW';
+
+ const reviewEach=!(m.state&&m.state.reviewEachQuestion===false);
+ const cg=supportsCG(m);
+ $('quizReviewToggle').checked=reviewEach;
+ $('quizReviewToggle').disabled=!m.online||!m.stateReachable||!cg;
+ $('quizReviewToggle').title=cg
+   ?'เปิด = ดูเฉลยแล้วกด ไปข้อถัดไป เอง • ปิด = ไม่เฉลยและไปข้อต่อไปอัตโนมัติ'
+   :'รอเครื่องอัปเดตเป็น CG';
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
@@ -462,6 +480,11 @@ $('quizAllToggle').onchange=async()=>{
  const desired=$('quizAllToggle').checked;
  const ok=await command('quizModeAll',{enabled:desired});
  if(!ok)$('quizAllToggle').checked=!desired;
+};
+$('quizReviewToggle').onchange=async()=>{
+ const desired=$('quizReviewToggle').checked;
+ const ok=await command('quizReview',{enabled:desired});
+ if(!ok)$('quizReviewToggle').checked=!desired;
 };
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
