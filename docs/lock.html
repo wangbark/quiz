@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -91,6 +91,13 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
  .pin{gap:4px}.pin input{width:38px;height:48px;border-radius:14px;font-size:20px}
  .manage-head{display:flex}.manage-right{margin-left:auto}.manage-status{text-align:right;margin-top:0}
 }
+.subject-picker{margin:10px 0 16px;padding:13px 14px;border-radius:16px;background:rgba(239,248,253,.86);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+.subject-picker-title{grid-column:1/-1;font-weight:800;color:#294d61}
+.subject-picker-note{grid-column:1/-1;font-size:12px;color:#69808d;margin-top:-3px}
+.subject-picker label{display:flex;gap:8px;align-items:center;font-weight:650;font-size:14px}
+.subject-picker input{width:17px;height:17px;accent-color:#4d9fbd}
+.subject-picker.disabled{opacity:.48;pointer-events:none}
+@media(max-width:520px){.subject-picker{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -137,6 +144,16 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
           <input id="quizAllToggle" type="checkbox">
           <span class="slider"></span>
         </label>
+      </div>
+
+      <div class="subject-picker" id="subjectPicker">
+        <div class="subject-picker-title">วิชาที่ใช้ใน GameLock</div>
+        <div class="subject-picker-note">ติ๊กเฉพาะวิชาที่ต้องการให้แสดงและนับในโหมดทำทุกวิชา</div>
+        <label><input type="checkbox" data-subject-bit="1" checked> ภาษาไทย</label>
+        <label><input type="checkbox" data-subject-bit="2" checked> คณิตศาสตร์</label>
+        <label><input type="checkbox" data-subject-bit="4" checked> วิทยาศาสตร์</label>
+        <label><input type="checkbox" data-subject-bit="8" checked> สังคมศึกษา</label>
+        <label><input type="checkbox" data-subject-bit="16" checked> ภาษาอังกฤษ</label>
       </div>
 
       <div class="setting-row">
@@ -225,6 +242,7 @@ function supportsBN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)
 function supportsBU(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260914213000}
 function supportsBW(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260916184000}
 function supportsCG(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
+function supportsCI(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -328,6 +346,17 @@ function updateManage(){
  $('quizReviewToggle').title=cg
    ?'เปิด = ดูเฉลยแล้วกด ไปข้อถัดไป เอง • ปิด = ไม่เฉลยและไปข้อต่อไปอัตโนมัติ'
    :'รอเครื่องอัปเดตเป็น CG';
+ 
+ const ci=supportsCI(m);
+ const subjectMask=Math.max(1,Math.min(31,Number(m.state&&m.state.subjectMask||31)));
+ const picker=$('subjectPicker');
+ [...picker.querySelectorAll('[data-subject-bit]')].forEach(cb=>{
+   const bit=Number(cb.dataset.subjectBit)||0;
+   cb.checked=(subjectMask&bit)!==0;
+   cb.disabled=!m.online||!m.stateReachable||!ci;
+ });
+ picker.classList.toggle('disabled',!m.online||!m.stateReachable||!ci);
+ picker.title=ci?'เลือกวิชาที่ต้องการให้ GameLock แสดงและนับ':'รอเครื่องอัปเดตเป็น CI';
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
@@ -486,6 +515,19 @@ $('quizReviewToggle').onchange=async()=>{
  const ok=await command('quizReview',{enabled:desired});
  if(!ok)$('quizReviewToggle').checked=!desired;
 };
+async function saveSubjectMask(){
+ const boxes=[...$('subjectPicker').querySelectorAll('[data-subject-bit]')];
+ let mask=0;
+ boxes.forEach(cb=>{if(cb.checked)mask|=(Number(cb.dataset.subjectBit)||0)});
+ if(mask===0){
+   msg('ต้องเลือกอย่างน้อย 1 วิชา',false);
+   updateManage();
+   return;
+ }
+ const ok=await command('quizSubjects',{minutes:mask});
+ if(!ok)updateManage();
+}
+[...$('subjectPicker').querySelectorAll('[data-subject-bit]')].forEach(cb=>cb.onchange=saveSubjectMask);
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
 $('viewScreen').onclick=startScreenView;
