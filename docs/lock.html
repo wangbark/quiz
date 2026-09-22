@@ -131,6 +131,14 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
       </div>
 
       <div class="setting-row">
+        <span>แสดงปุ่มกรอกคูปองบนเครื่องนี้</span>
+        <label class="switch" title="เปิดหรือซ่อนปุ่มกรอกคูปองบนหน้า GameLock">
+          <input id="couponToggle" type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
         <span>ซ่อนวิชาที่สอบผ่านแล้วในวันนี้ (เฉพาะโหมดทีละวิชา)</span>
         <label class="switch" title="ผ่านแล้วจะซ่อนจนถึงวันถัดไป">
           <input id="hidePassedToggle" type="checkbox" checked>
@@ -164,17 +172,7 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
         </label>
       </div>
 
-      <div class="pin-label">รหัส PIN</div>
-      <div class="pin" id="pin">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-        <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
-      </div>
+      <div class="pin-label">PIN จะถามเมื่อกดเปลี่ยนค่าครั้งแรก และจำไว้จนกว่าจะรีเฟรชหน้า</div>
 
       <div class="quick">
         <button class="action" data-min="5">5 นาที</button>
@@ -205,6 +203,28 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
   </section>
 </div>
 
+<div id="adminPinOverlay" class="screen-overlay" aria-hidden="true">
+  <div class="screen-card" style="max-width:520px">
+    <div class="screen-head"><b>ยืนยัน Admin PIN</b><button id="adminPinClose" type="button">✕</button></div>
+    <div style="padding:18px 18px 6px;text-align:center;color:#607d90">กรอก PIN แล้วระบบจะจำจนกว่าจะรีเฟรชหน้านี้</div>
+    <div class="pin" id="adminPinBoxes" style="padding:8px 18px 4px">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+      <input type="password" inputmode="numeric" maxlength="1" autocomplete="off">
+    </div>
+    <div id="adminPinMsg" class="msg"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 18px 18px">
+      <button id="adminPinCancel" class="action" type="button">ยกเลิก</button>
+      <button id="adminPinOk" class="action" type="button">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
 <div id="screenOverlay" class="screen-overlay" aria-hidden="true">
   <div class="screen-card">
     <div class="screen-head">
@@ -224,11 +244,34 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
 <script>
 const REPO_POINTER='https://raw.githubusercontent.com/wangbark/quiz/main/public-url.txt';
 const $=id=>document.getElementById(id);
-const pins=[...document.querySelectorAll('#pin input')];
+const pins=[...document.querySelectorAll('#adminPinBoxes input')];
+let sessionPin='';
+let pinPromptResolve=null;
 let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false, screenOpen=false, screenMachineId='', screenPin='', screenToken='', screenTimer=null, screenKeepalive=null, screenObjectUrl='';
 
 function pinValue(){return pins.map(x=>x.value).join('')}
-function clearPin(){pins.forEach(x=>x.value='');pins[0].focus()}
+function clearPin(){pins.forEach(x=>x.value='')}
+function closePinPrompt(value=''){
+  $('adminPinOverlay').classList.remove('show');
+  $('adminPinOverlay').setAttribute('aria-hidden','true');
+  const r=pinPromptResolve;pinPromptResolve=null;
+  if(r)r(value);
+}
+function askPin(){
+  if(sessionPin)return Promise.resolve(sessionPin);
+  if(pinPromptResolve)return new Promise(resolve=>{
+    const prev=pinPromptResolve;pinPromptResolve=v=>{try{prev(v)}finally{resolve(v)}};
+  });
+  clearPin();$('adminPinMsg').textContent='';
+  $('adminPinOverlay').classList.add('show');$('adminPinOverlay').setAttribute('aria-hidden','false');
+  setTimeout(()=>pins[0]?.focus(),80);
+  return new Promise(resolve=>{pinPromptResolve=resolve});
+}
+async function ensureSessionPin(){
+  if(sessionPin)return sessionPin;
+  const value=await askPin();
+  return value||'';
+}
 function msg(t,ok){$('msg').className='msg '+(ok?'ok':'err');$('msg').textContent=t||''}
 function fmt(sec){
  sec=Math.max(0,Number(sec)||0);
@@ -243,6 +286,7 @@ function supportsBU(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)
 function supportsBW(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260916184000}
 function supportsCG(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function supportsCI(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
+function supportsCN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922114500}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -264,6 +308,7 @@ async function probe(m){
    remainingSeconds:Number(m.remainingSeconds)||0,
    adminMode:!!m.adminMode,
    quizEnabled:m.quizEnabled!==false,
+   couponEnabled:m.couponEnabled!==false,
    hidePassedToday:m.hidePassedToday!==false,
    requireAllSubjects:!!m.requireAllSubjects,
    reviewEachQuestion:m.reviewEachQuestion!==false,
@@ -310,7 +355,6 @@ function selectMachine(id){
  }
  render();
  const m=machines.find(x=>x.machineId===id);
- if(manageOpen&&m?.online)pins[0].focus();
 }
 function updateManage(){
  const m=machines.find(x=>x.machineId===selectedId);
@@ -322,6 +366,12 @@ function updateManage(){
  const quizEnabled=!(m.state&&m.state.quizEnabled===false);
  $('quizToggle').checked=quizEnabled;
  $('quizToggle').disabled=!m.online||!m.stateReachable;
+
+ const cn=supportsCN(m);
+ const couponEnabled=!(m.state&&m.state.couponEnabled===false);
+ $('couponToggle').checked=couponEnabled;
+ $('couponToggle').disabled=!m.online||!m.stateReachable||!cn;
+ $('couponToggle').title=cn?'เปิดหรือซ่อนปุ่มกรอกคูปองบนหน้า GameLock':'รอเครื่องอัปเดตเป็น CN';
 
  const hidePassed=!(m.state&&m.state.hidePassedToday===false);
  const allMode=!!(m.state&&m.state.requireAllSubjects);
@@ -411,16 +461,22 @@ async function sendQueued(m,action,body,pin){
 async function command(action,body){
  const m=machines.find(x=>x.machineId===selectedId);
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return false}
- const pin=pinValue();
- if(pin.length<4){msg('กรอกรหัส PIN อย่างน้อย 4 หลัก',false);pins[0].focus();return false}
+ const pin=await ensureSessionPin();
+ if(!pin)return false;
  msg('กำลังส่งคำสั่ง…',true);
  try{
    await sendQueued(m,action,body,pin);
-   msg('สำเร็จ',true);clearPin();
+   sessionPin=pin;
+   msg('สำเร็จ',true);
    await new Promise(resolve=>setTimeout(resolve,650));
    await loadMachines();
    return true;
- }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin();return false}
+ }catch(e){
+   const text=e.message||'ทำรายการไม่สำเร็จ';
+   if(/pin|รหัสผู้ดูแล/i.test(text))sessionPin='';
+   msg(text,false);
+   return false;
+ }
 }
 function setScreenWaiting(text){
  $('screenWait').textContent=text||'กำลังขอภาพจากเครื่อง…';
@@ -455,14 +511,14 @@ async function startScreenView(){
  const m=machines.find(x=>x.machineId===selectedId);
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
  if(!supportsBN(m)){msg('รอเครื่องอัปเดตเป็น BN ก่อน',false);return}
- const pin=pinValue();
- if(pin.length<4){msg('กรอกรหัส PIN ก่อนดูหน้าจอ',false);pins[0].focus();return}
+ const pin=await ensureSessionPin();
+ if(!pin)return;
  msg('กำลังเปิดดูหน้าจอ…',true);
  try{
    const d=await sendQueued(m,'screen',{enabled:true},pin);
    if(!d.viewToken)throw new Error('เปิดดูหน้าจอไม่ได้');
    screenOpen=true;screenMachineId=m.machineId;screenPin=pin;screenToken=d.viewToken;
-   pins.forEach(x=>x.value='');
+   sessionPin=pin;
    $('screenTitle').textContent='หน้าจอ • '+(m.name||m.machineName||'Unknown');
    $('screenOverlay').classList.add('show');$('screenOverlay').setAttribute('aria-hidden','false');
    setScreenWaiting('กำลังขอภาพจากเครื่อง…');
@@ -488,12 +544,22 @@ async function shutdownSelected(){
  if(!confirm('ปิดเครื่อง '+(m.name||m.machineName||'')+' ตอนนี้?'))return;
  await command('shutdown',{});
 }
+$('adminPinOk').onclick=()=>{
+ const v=pinValue();
+ if(v.length<4){$('adminPinMsg').textContent='กรอก Admin PIN';pins[0]?.focus();return}
+ sessionPin=v;closePinPrompt(v);
+};
+$('adminPinCancel').onclick=()=>closePinPrompt('');
+$('adminPinClose').onclick=()=>closePinPrompt('');
+$('adminPinOverlay').addEventListener('click',e=>{if(e.target===$('adminPinOverlay'))closePinPrompt('')});
+
 pins.forEach((el,i)=>{
  el.addEventListener('input',()=>{el.value=el.value.replace(/\D/g,'').slice(0,1);if(el.value&&i<pins.length-1)pins[i+1].focus()});
  el.addEventListener('keydown',e=>{
   if(e.key==='Backspace'&&!el.value&&i>0){pins[i-1].value='';pins[i-1].focus()}
   if(e.key==='ArrowLeft'&&i>0)pins[i-1].focus();
   if(e.key==='ArrowRight'&&i<pins.length-1)pins[i+1].focus();
+  if(e.key==='Enter')$('adminPinOk').click();
  });
  el.addEventListener('paste',e=>{
   const ds=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,8);
@@ -510,6 +576,11 @@ $('quizToggle').onchange=async()=>{
  const desired=$('quizToggle').checked;
  const ok=await command('quiz',{enabled:desired});
  if(!ok)$('quizToggle').checked=!desired;
+};
+$('couponToggle').onchange=async()=>{
+ const desired=$('couponToggle').checked;
+ const ok=await command('couponEnabled',{enabled:desired});
+ if(!ok)$('couponToggle').checked=!desired;
 };
 $('hidePassedToggle').onchange=async()=>{
  const desired=$('hidePassedToggle').checked;
