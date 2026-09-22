@@ -286,7 +286,7 @@ function supportsBU(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)
 function supportsBW(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260916184000}
 function supportsCG(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function supportsCI(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
-function supportsCN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922114500}
+function supportsCN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922120500}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
