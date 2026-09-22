@@ -94,6 +94,7 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
 .subject-picker{margin:10px 0 16px;padding:13px 14px;border-radius:16px;background:rgba(239,248,253,.86);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
 .subject-picker-title{grid-column:1/-1;font-weight:800;color:#294d61}
 .subject-picker-note{grid-column:1/-1;font-size:12px;color:#69808d;margin-top:-3px}
+.subject-picker-items{display:contents}
 .subject-picker label{display:flex;gap:8px;align-items:center;font-weight:650;font-size:14px}
 .subject-picker input{width:17px;height:17px;accent-color:#4d9fbd}
 .subject-picker.disabled{opacity:.48;pointer-events:none}
@@ -156,12 +157,8 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
 
       <div class="subject-picker" id="subjectPicker">
         <div class="subject-picker-title">วิชาที่ใช้ใน GameLock</div>
-        <div class="subject-picker-note">ติ๊กเฉพาะวิชาที่ต้องการให้แสดงและนับในโหมดทำทุกวิชา</div>
-        <label><input type="checkbox" data-subject-bit="1" checked> ภาษาไทย</label>
-        <label><input type="checkbox" data-subject-bit="2" checked> คณิตศาสตร์</label>
-        <label><input type="checkbox" data-subject-bit="4" checked> วิทยาศาสตร์</label>
-        <label><input type="checkbox" data-subject-bit="8" checked> สังคมศึกษา</label>
-        <label><input type="checkbox" data-subject-bit="16" checked> ภาษาอังกฤษ</label>
+        <div class="subject-picker-note" id="subjectPickerNote">กำลังดึงรายวิชาจริงจาก QuizWeb…</div>
+        <div class="subject-picker-items" id="subjectPickerItems"></div>
       </div>
 
       <div class="setting-row">
@@ -247,7 +244,7 @@ const $=id=>document.getElementById(id);
 const pins=[...document.querySelectorAll('#adminPinBoxes input')];
 let sessionPin='';
 let pinPromptResolve=null;
-let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false, screenOpen=false, screenMachineId='', screenPin='', screenToken='', screenTimer=null, screenKeepalive=null, screenObjectUrl='';
+let central='', machines=[], selectedId='', manageOpen=false, refreshBusy=false, screenOpen=false, screenMachineId='', screenPin='', screenToken='', screenTimer=null, screenKeepalive=null, screenObjectUrl='', quizSubjects=[], quizSubjectsLoadedAt=0;
 
 function pinValue(){return pins.map(x=>x.value).join('')}
 function clearPin(){pins.forEach(x=>x.value='')}
@@ -287,6 +284,7 @@ function supportsBW(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)
 function supportsCG(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function supportsCI(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260920191000}
 function supportsCN(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922110000}
+function supportsDB(m){return Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922154500}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -297,6 +295,57 @@ async function getCentral(){
  const u=(await r.text()).trim().replace(/\/+$/,'');
  if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i.test(u))throw new Error('เซิร์ฟเวอร์หลักยังไม่พร้อม');
  central=u;return u;
+}
+
+function allSubjectMask(){
+ const n=Math.min(30,quizSubjects.length);
+ return n>0?Math.pow(2,n)-1:1073741823;
+}
+function renderSubjectPicker(){
+ const host=$('subjectPickerItems');
+ const note=$('subjectPickerNote');
+ if(!host||!note)return;
+ if(!quizSubjects.length){
+   host.innerHTML='';
+   note.textContent='ยังดึงรายวิชาจริงจาก QuizWeb ไม่ได้';
+   return;
+ }
+ host.innerHTML=quizSubjects.slice(0,30).map((s,i)=>{
+   const bit=Math.pow(2,i);
+   return `<label><input type="checkbox" data-subject-bit="${bit}" data-subject-id="${escapeHtml(s.id)}"> ${escapeHtml(s.title)}</label>`;
+ }).join('');
+ note.textContent=quizSubjects.length>30
+   ?`ดึงจาก QuizWeb จริง • แสดง 30 วิชาแรกจาก ${quizSubjects.length} วิชา`
+   :'ดึงจากรายวิชาจริงของ QuizWeb • เปลี่ยนหลังบ้านแล้วรีเฟรชหน้านี้';
+ [...host.querySelectorAll('[data-subject-bit]')].forEach(cb=>cb.onchange=saveSubjectMask);
+}
+function parseQuizData(source){
+ const fakeWindow={};
+ let code=String(source||'');
+ if(!/window\.QUIZ_DATA\s*=/.test(code)){
+   code=code.replace(/\b(?:const|let|var)\s+QUIZ_DATA\s*=/,'window.QUIZ_DATA=');
+ }
+ const fn=new Function('window',code+'\n;return window.QUIZ_DATA||null;');
+ const data=fn(fakeWindow);
+ const raw=Array.isArray(data?.subjects)?data.subjects:[];
+ const seen=new Set();
+ return raw.map((s,i)=>({
+   id:String(s?.id??('subject-'+(i+1))).trim(),
+   title:String(s?.title??s?.name??s?.id??('วิชา '+(i+1))).trim()
+ })).filter(s=>s.id&&s.title&&!seen.has(s.id)&&(seen.add(s.id),true));
+}
+async function loadQuizSubjects(force=false){
+ if(!central)return;
+ if(!force&&quizSubjects.length&&Date.now()-quizSubjectsLoadedAt<60000)return;
+ try{
+   const r=await timeoutFetch(central+'/api/gamelock/quiz-data?t='+Date.now(),{cache:'no-store'},6000);
+   if(!r.ok)throw new Error('โหลด data.js ไม่ได้');
+   const list=parseQuizData(await r.text());
+   if(!list.length)throw new Error('ไม่พบรายวิชา');
+   quizSubjects=list;quizSubjectsLoadedAt=Date.now();renderSubjectPicker();
+ }catch(e){
+   quizSubjects=[];quizSubjectsLoadedAt=0;renderSubjectPicker();
+ }
 }
 async function probe(m){
  const s={
@@ -312,6 +361,7 @@ async function probe(m){
    hidePassedToday:m.hidePassedToday!==false,
    requireAllSubjects:!!m.requireAllSubjects,
    reviewEachQuestion:m.reviewEachQuestion!==false,
+   subjectMask:Number(m.subjectMask)||1073741823,
    version:m.version||'',
    versionBuild:Number(m.versionBuild)||0
  };
@@ -397,16 +447,17 @@ function updateManage(){
    ?'เปิด = ดูเฉลยแล้วกด ไปข้อถัดไป เอง • ปิด = ไม่เฉลยและไปข้อต่อไปอัตโนมัติ'
    :'รอเครื่องอัปเดตเป็น CG';
  
- const ci=supportsCI(m);
- const subjectMask=Math.max(1,Math.min(31,Number(m.state&&m.state.subjectMask||31)));
+ const db=supportsDB(m);
  const picker=$('subjectPicker');
- [...picker.querySelectorAll('[data-subject-bit]')].forEach(cb=>{
+ const subjectMask=Number(m.state&&m.state.subjectMask)||allSubjectMask();
+ const subjectBoxes=[...picker.querySelectorAll('[data-subject-bit]')];
+ subjectBoxes.forEach(cb=>{
    const bit=Number(cb.dataset.subjectBit)||0;
    cb.checked=(subjectMask&bit)!==0;
-   cb.disabled=!m.online||!m.stateReachable||!ci;
+   cb.disabled=!m.online||!m.stateReachable||!db||!quizSubjects.length;
  });
- picker.classList.toggle('disabled',!m.online||!m.stateReachable||!ci);
- picker.title=ci?'เลือกวิชาที่ต้องการให้ GameLock แสดงและนับ':'รอเครื่องอัปเดตเป็น CL';
+ picker.classList.toggle('disabled',!m.online||!m.stateReachable||!db||!quizSubjects.length);
+ picker.title=!db?'รอเครื่องอัปเดตเป็น DB':(quizSubjects.length?'รายการนี้ดึงจาก QuizWeb จริง':'ยังโหลดรายวิชาจาก QuizWeb ไม่ได้');
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
@@ -419,6 +470,7 @@ async function loadMachines(){
  if(refreshBusy)return;refreshBusy=true;
  try{
    if(!central)await getCentral();
+   await loadQuizSubjects(false);
    let r=await timeoutFetch(central+'/api/gamelock/machines?t='+Date.now(),{cache:'no-store'},5000);
    if(!r.ok){central='';await getCentral();r=await timeoutFetch(central+'/api/gamelock/machines?t='+Date.now(),{cache:'no-store'},5000)}
    if(!r.ok)throw new Error('โหลดรายชื่อเครื่องไม่ได้');
@@ -600,7 +652,7 @@ $('quizReviewToggle').onchange=async()=>{
 async function saveSubjectMask(){
  const boxes=[...$('subjectPicker').querySelectorAll('[data-subject-bit]')];
  let mask=0;
- boxes.forEach(cb=>{if(cb.checked)mask|=(Number(cb.dataset.subjectBit)||0)});
+ boxes.forEach(cb=>{if(cb.checked)mask+=(Number(cb.dataset.subjectBit)||0)});
  if(mask===0){
    msg('ต้องเลือกอย่างน้อย 1 วิชา',false);
    updateManage();
@@ -609,7 +661,6 @@ async function saveSubjectMask(){
  const ok=await command('quizSubjects',{minutes:mask});
  if(!ok)updateManage();
 }
-[...$('subjectPicker').querySelectorAll('[data-subject-bit]')].forEach(cb=>cb.onchange=saveSubjectMask);
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
 $('viewScreen').onclick=startScreenView;
@@ -619,7 +670,7 @@ $('screenOverlay').addEventListener('click',e=>{if(e.target===$('screenOverlay')
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&screenOpen)closeScreenView()});
 window.addEventListener('beforeunload',()=>closeScreenView());
 $('collapseManage').onclick=()=>{manageOpen=false;updateManage();};
-$('refresh').onclick=()=>loadMachines();
+$('refresh').onclick=async()=>{await loadQuizSubjects(true);await loadMachines();};
 loadMachines();
 setInterval(loadMachines,5000);
 </script>
