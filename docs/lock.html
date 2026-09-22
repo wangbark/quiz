@@ -356,7 +356,7 @@ function updateManage(){
    cb.disabled=!m.online||!m.stateReachable||!ci;
  });
  picker.classList.toggle('disabled',!m.online||!m.stateReachable||!ci);
- picker.title=ci?'เลือกวิชาที่ต้องการให้ GameLock แสดงและนับ':'รอเครื่องอัปเดตเป็น CI';
+ picker.title=ci?'เลือกวิชาที่ต้องการให้ GameLock แสดงและนับ':'รอเครื่องอัปเดตเป็น CL';
 
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
@@ -373,7 +373,18 @@ async function loadMachines(){
    if(!r.ok){central='';await getCentral();r=await timeoutFetch(central+'/api/gamelock/machines?t='+Date.now(),{cache:'no-store'},5000)}
    if(!r.ok)throw new Error('โหลดรายชื่อเครื่องไม่ได้');
    const list=await r.json();
-   machines=await Promise.all((Array.isArray(list)?list:[]).map(probe));
+   const raw=Array.isArray(list)?list:[];
+   const newestByPc=new Map();
+   raw.forEach(m=>{
+     const name=String(m?.name||m?.machineName||'').trim().toLowerCase();
+     const ip=String(m?.ip||m?.localIp||'').trim();
+     const key=(name&&ip)?(name+'|'+ip):String(m?.machineId||'');
+     const prev=newestByPc.get(key);
+     const mt=Date.parse(m?.lastSeenUtc||0)||0;
+     const pt=Date.parse(prev?.lastSeenUtc||0)||0;
+     if(!prev||mt>=pt)newestByPc.set(key,m);
+   });
+   machines=await Promise.all([...newestByPc.values()].map(probe));
    if(selectedId&&!machines.some(x=>x.machineId===selectedId)){selectedId='';manageOpen=false;}
    if(screenOpen){const sm=machines.find(x=>x.machineId===screenMachineId);if(!sm||!sm.online)closeScreenView(false);}
    render();
