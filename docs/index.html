@@ -1,77 +1,2435 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>QuizWeb</title>
-<meta name="robots" content="noindex">
-<style>
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#f4f8fb}
-#app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
-#loading{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#f4f8fb;font-family:Sarabun,system-ui,-apple-system,"Segoe UI",sans-serif;color:#18324a}
-.card{width:min(90vw,420px);padding:26px;text-align:center}
-.spinner{width:34px;height:34px;margin:0 auto 16px;border:4px solid #d8e7ef;border-top-color:#2078a8;border-radius:50%;animation:spin .75s linear infinite}
-h1{font-size:21px;margin:0 0 8px}
-p{font-size:15px;color:#648092;line-height:1.6;margin:0}
-button{margin-top:16px;border:0;border-radius:12px;padding:11px 18px;background:#2078a8;color:#fff;font:700 15px inherit;cursor:pointer}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
-</head>
-<body>
-<div id="loading">
-  <div class="card">
-    <div class="spinner"></div>
-    <h1>กำลังเชื่อมต่อแบบเรียน</h1>
-    <p id="status">รอสักครู่…</p>
-    <button id="retry" hidden>ลองใหม่</button>
-  </div>
-</div>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7fbff" />
+  <meta name="description" content="บทเรียนและแบบทดสอบ ป.3 หลายวิชา พร้อมอ่านออกเสียงภาษาไทย" />
+  <title>แบบเรียนและแบบทดสอบ ป.3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=BX20260919200338" />
 
-<iframe
-  id="app"
-  title="QuizWeb"
-  allow="autoplay; clipboard-read; clipboard-write"
-  referrerpolicy="no-referrer"
-></iframe>
-
-<script>
-const frame=document.getElementById('app');
-const loading=document.getElementById('loading');
-const statusEl=document.getElementById('status');
-const retry=document.getElementById('retry');
-
-async function loadQuiz(){
-  retry.hidden=true;
-  loading.style.display='flex';
-  statusEl.textContent='รอสักครู่…';
-
-  try{
-    const pointer='https://raw.githubusercontent.com/wangbark/quiz/main/public-url.txt?t='+Date.now();
-    const r=await fetch(pointer,{cache:'no-store'});
-    if(!r.ok) throw new Error('pointer '+r.status);
-
-    const base=(await r.text()).trim().replace(/\/+$/,'');
-    if(!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/i.test(base)){
-      throw new Error('invalid tunnel');
-    }
-
-    const target=base+location.search+location.hash;
-    frame.onload=()=>{ loading.style.display='none'; };
-    frame.src=target;
-
-    setTimeout(()=>{
-      if(loading.style.display!=='none'){
-        statusEl.textContent='กำลังโหลดจากเครื่อง QuizWeb…';
-      }
-    },2500);
-  }catch(e){
-    statusEl.textContent='ยังเชื่อมต่อเครื่อง QuizWeb ไม่ได้';
-    retry.hidden=false;
-  }
+<!-- QUIZWEB_BW_CLIENT_START -->
+<style id="quizweb-bw-style">
+/* Stable lesson layout */
+#view-lessons .section-heading.split{
+  display:block !important;
+  width:100% !important;
+}
+#view-lessons .section-heading.split > div{
+  width:100% !important;
+  min-width:0 !important;
+}
+#bwLessonNav{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr)) !important;
+  gap:10px !important;
+  width:100% !important;
+  margin:0 0 12px !important;
+}
+#bwLessonNav button,
+#bwLessonNav a{
+  position:static !important;
+  float:none !important;
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+}
+#view-lessons #lessonSelect{
+  position:static !important;
+  float:none !important;
+  display:block !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  margin:0 0 12px !important;
+}
+#view-lessons .audio-toolbar{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:10px !important;
+  align-items:stretch !important;
+}
+#view-lessons #readLessonBtn,
+#view-lessons .read-section,
+#view-lessons .lesson-bottom-actions,
+#view-lessons .lesson-bottom-actions button{
+  width:100% !important;
+  max-width:none !important;
+}
+#view-lessons .lesson-section-head{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:10px !important;
+  align-items:stretch !important;
 }
 
-retry.addEventListener('click',loadQuiz);
-loadQuiz();
+/* Stable quiz layout */
+#view-quiz .quiz-topline{
+  display:block !important;
+  width:100% !important;
+}
+#view-quiz #backToQuizSelect{
+  position:static !important;
+  float:none !important;
+  display:block !important;
+  width:100% !important;
+  max-width:none !important;
+  margin:0 0 12px !important;
+}
+#view-quiz .quiz-progress-wrap{
+  width:100% !important;
+  min-width:0 !important;
+}
+#view-quiz .question-source-row{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:10px !important;
+  align-items:stretch !important;
+}
+#view-quiz #readQuestionAllBtn,
+#view-quiz .listen-btn{
+  width:100% !important;
+  max-width:none !important;
+}
+#view-quiz .quiz-actions{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:10px !important;
+}
+#view-quiz .quiz-actions button{
+  width:100% !important;
+  max-width:none !important;
+}
+#view-lessons *,
+#view-quiz *{
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* local speech busy state */
+.quizweb-bw-speech-locked{
+  pointer-events:none !important;
+  opacity:.46 !important;
+}
+#quizwebBwStop{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:9999;
+  border:0;
+  border-radius:16px;
+  min-height:44px;
+  padding:10px 16px;
+  background:#ffe7e9;
+  color:#9d3948;
+  font:700 15px/1.1 "Sarabun","Segoe UI",sans-serif;
+  box-shadow:0 10px 28px rgba(50,70,90,.16);
+  cursor:pointer;
+}
+#quizwebBwStop[hidden]{display:none !important}
+
+/* daily subject state */
+#subjectGrid > .quizweb-bw-hidden{
+  display:none !important;
+}
+#quizwebBwProgress{
+  margin:10px 0 14px;
+  padding:12px 16px;
+  border-radius:16px;
+  background:#eef7fc;
+  color:#42677d;
+  font-weight:600;
+  text-align:center;
+}
+</style>
+
+<script id="quizweb-bw-client">
+(function(){
+  'use strict';
+
+  const params=new URLSearchParams(location.search||'');
+  const isGameLock=
+    params.get('gamelock')==='1' ||
+    !!(window.chrome&&window.chrome.webview);
+  const hidePassed=params.get('hidePassedToday')!=='0';
+  const quizMode=params.get('quizMode')==='all'?'all':'one';
+  const quizRound=params.get('quizRound')||('legacy-'+localDay());
+
+  const nativeFetch=window.fetch.bind(window);
+  const speechSelectors=
+    '#readLessonBtn,.read-section,#testSpeechBtn';
+  let activeAudio=null;
+  let ttsAbort=null;
+  let speechBusyCount=0;
+
+  function localDay(){
+    const d=new Date();
+    const p=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  }
+  function keyOne(){return 'quizWebPassedSubjects:'+localDay()}
+  function keyAll(){return 'quizWebAllModeDone:'+quizRound}
+
+  function readSet(key){
+    try{
+      const a=JSON.parse(localStorage.getItem(key)||'[]');
+      return new Set(Array.isArray(a)?a.map(String):[]);
+    }catch(_){return new Set()}
+  }
+  function saveSet(key,set){
+    try{localStorage.setItem(key,JSON.stringify([...set]))}catch(_){}
+  }
+  function clearOldDaily(){
+    try{
+      const keep=new Set([keyOne(),keyAll()]);
+      for(let i=localStorage.length-1;i>=0;i--){
+        const k=localStorage.key(i);
+        if(
+          k &&
+          (k.startsWith('quizWebPassedSubjects:') ||
+           k.startsWith('quizWebAllModeDone:')) &&
+          !keep.has(k)
+        ) localStorage.removeItem(k);
+      }
+    }catch(_){}
+  }
+
+  function allSubjectIds(){
+    try{
+      return (window.QUIZ_DATA?.subjects||[])
+        .map(x=>String(x.id||''))
+        .filter(Boolean);
+    }catch(_){return []}
+  }
+
+  function activeSubjectId(){
+    try{
+      const label=String(
+        document.getElementById('quizSubjectLabel')?.textContent||
+        document.getElementById('lessonSubjectLabel')?.textContent||
+        ''
+      ).trim();
+
+      const subjects=window.QUIZ_DATA?.subjects||[];
+      const exact=subjects.find(s=>String(s.title||'').trim()===label);
+      if(exact?.id)return String(exact.id);
+
+      const visible=document.querySelector(
+        '#subjectGrid [data-subject]:not(.quizweb-bw-hidden)'
+      );
+      if(visible?.dataset?.subject)return String(visible.dataset.subject);
+    }catch(_){}
+    return '';
+  }
+
+  function applySubjectVisibility(){
+    if(!isGameLock)return;
+    const grid=document.getElementById('subjectGrid');
+    if(!grid)return;
+
+    document.getElementById('quizwebDailyCompleteNote')?.remove();
+
+    const hiddenSet=
+      quizMode==='all'
+        ? readSet(keyAll())
+        : readSet(keyOne());
+
+    [...grid.children].forEach(card=>{
+      const id=String(
+        card.dataset?.subject ||
+        card.querySelector?.('[data-subject]')?.dataset?.subject ||
+        ''
+      );
+
+      card.classList.toggle(
+        'quizweb-bw-hidden',
+        !!(id&&hiddenSet.has(id)&&(quizMode==='all'||hidePassed))
+      );
+      card.classList.remove('quizweb-daily-hidden');
+      card.classList.remove('quizweb-passed-today-hidden');
+    });
+
+    let progress=document.getElementById('quizwebBwProgress');
+
+    if(quizMode==='all'){
+      const total=allSubjectIds().length;
+      const done=readSet(keyAll()).size;
+
+      if(done>0&&done<total){
+        if(!progress){
+          progress=document.createElement('div');
+          progress.id='quizwebBwProgress';
+          grid.parentElement?.insertBefore(progress,grid);
+        }
+        progress.textContent=`ทำแล้ว ${done}/${total} วิชา • ต้องครบทุกวิชาก่อน แล้วจึงใช้คะแนนเฉลี่ย`;
+      }else if(progress){
+        progress.remove();
+      }
+    }else if(progress){
+      progress.remove();
+    }
+  }
+
+  function closeQuizWindow(){
+    if(window.chrome&&window.chrome.webview){
+      setTimeout(()=>{
+        try{
+          window.chrome.webview.postMessage(
+            JSON.stringify({action:'closeQuiz'})
+          );
+        }catch(_){}
+      },1200);
+    }
+  }
+
+  function setSpeechBusy(on){
+    if(on)speechBusyCount++;
+    else speechBusyCount=Math.max(0,speechBusyCount-1);
+
+    const busy=speechBusyCount>0;
+    document.querySelectorAll(speechSelectors).forEach(el=>{
+      el.classList.toggle('quizweb-bw-speech-locked',busy);
+      if('disabled' in el)el.disabled=busy;
+    });
+
+    let stop=document.getElementById('quizwebBwStop');
+    if(!stop){
+      stop=document.createElement('button');
+      stop.id='quizwebBwStop';
+      stop.type='button';
+      stop.textContent='■ หยุด';
+      stop.hidden=true;
+      stop.onclick=()=>{
+        try{ttsAbort?.abort()}catch(_){}
+        try{
+          if(activeAudio){
+            activeAudio.pause();
+            activeAudio.currentTime=0;
+          }
+        }catch(_){}
+        try{window.speechSynthesis?.cancel()}catch(_){}
+        speechBusyCount=0;
+        setSpeechBusy(false);
+      };
+      document.body.appendChild(stop);
+    }
+    stop.hidden=!busy;
+  }
+
+  document.addEventListener('click',ev=>{
+    if(speechBusyCount<=0)return;
+    const hit=ev.target?.closest?.(speechSelectors);
+    if(hit){
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+    }
+  },true);
+
+  try{
+    const nativePlay=HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play=function(){
+      if(this instanceof HTMLAudioElement){
+        activeAudio=this;
+        setSpeechBusy(true);
+        const release=()=>{
+          if(activeAudio===this)activeAudio=null;
+          setSpeechBusy(false);
+        };
+        this.addEventListener('ended',release,{once:true});
+        this.addEventListener('error',release,{once:true});
+        this.addEventListener('pause',()=>{
+          if(this.ended||this.currentTime===0)release();
+        },{once:true});
+      }
+      return nativePlay.apply(this,arguments);
+    };
+  }catch(_){}
+
+  try{
+    if(window.speechSynthesis){
+      const nativeSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+      window.speechSynthesis.speak=function(utter){
+        setSpeechBusy(true);
+        const release=()=>setSpeechBusy(false);
+        try{
+          utter.addEventListener('end',release,{once:true});
+          utter.addEventListener('error',release,{once:true});
+        }catch(_){}
+        return nativeSpeak(utter);
+      };
+    }
+  }catch(_){}
+
+  async function digest(text){
+    try{
+      const raw=new TextEncoder().encode(text);
+      const hash=await crypto.subtle.digest('SHA-256',raw);
+      return [...new Uint8Array(hash)]
+        .map(b=>b.toString(16).padStart(2,'0')).join('');
+    }catch(_){
+      let h=2166136261;
+      for(let i=0;i<text.length;i++){
+        h^=text.charCodeAt(i);
+        h=Math.imul(h,16777619);
+      }
+      return (h>>>0).toString(16);
+    }
+  }
+
+  async function trimCache(cache,maxItems){
+    try{
+      const keys=await cache.keys();
+      while(keys.length>maxItems){
+        const k=keys.shift();
+        if(k)await cache.delete(k);
+      }
+    }catch(_){}
+  }
+
+  function requestUrl(input){
+    try{return typeof input==='string'?input:input.url||String(input)}
+    catch(_){return String(input||'')}
+  }
+
+  function currentMethod(input,init){
+    return String(
+      init?.method ||
+      (typeof input!=='string'&&input?.method) ||
+      'GET'
+    ).toUpperCase();
+  }
+
+  async function requestBodyText(input,init){
+    if(init&&typeof init.body==='string')return init.body;
+    try{
+      if(typeof input!=='string'&&input?.clone){
+        return await input.clone().text();
+      }
+    }catch(_){}
+    return '';
+  }
+
+  async function localCachedTts(input,init){
+    const body=await requestBodyText(input,init);
+    const key=await digest(requestUrl(input)+'\n'+body);
+    const cache=await caches.open('quizweb-tts-local-v1');
+    const cacheRequest=new Request(
+      location.origin+'/__quizweb_tts_cache__/'+key,
+      {method:'GET'}
+    );
+    const hit=await cache.match(cacheRequest);
+    if(hit)return hit.clone();
+
+    const controller=new AbortController();
+    ttsAbort=controller;
+
+    const timer=setTimeout(()=>controller.abort(),120000);
+
+    try{
+      const clean={...(init||{})};
+      clean.signal=controller.signal;
+
+      const response=await nativeFetch(input,clean);
+
+      if(response.ok){
+        try{
+          await cache.put(cacheRequest,response.clone());
+          trimCache(cache,1200);
+        }catch(_){}
+      }
+
+      return response;
+    }finally{
+      clearTimeout(timer);
+      if(ttsAbort===controller)ttsAbort=null;
+    }
+  }
+
+  async function handleQuizResult(input,init){
+    let bodyText=await requestBodyText(input,init);
+    let body={};
+
+    try{body=bodyText?JSON.parse(bodyText):{}}catch(_){}
+
+    const subjectId=
+      String(body.subjectId||activeSubjectId()||'');
+    const subjectIds=allSubjectIds();
+
+    body.subjectId=subjectId;
+    body.subjectCount=subjectIds.length;
+
+    const clean={...(init||{})};
+    clean.body=JSON.stringify(body);
+
+    const response=await nativeFetch(input,clean);
+
+    try{
+      if(response.ok){
+        const result=await response.clone().json();
+
+        if(quizMode==='all'){
+          const done=readSet(keyAll());
+
+          if(subjectId)done.add(subjectId);
+
+          if(result.roundComplete){
+            if(Number(result.grantedMinutes)>0){
+              subjectIds.forEach(id=>done.add(String(id)));
+              saveSet(keyAll(),done);
+              applySubjectVisibility();
+              closeQuizWindow();
+            }else if(result.roundReset){
+              saveSet(keyAll(),new Set());
+              applySubjectVisibility();
+            }
+          }else{
+            saveSet(keyAll(),done);
+            applySubjectVisibility();
+          }
+        }else{
+          if(Number(result.grantedMinutes)>0&&subjectId){
+            const passed=readSet(keyOne());
+            passed.add(subjectId);
+            saveSet(keyOne(),passed);
+            applySubjectVisibility();
+            closeQuizWindow();
+          }
+        }
+      }
+    }catch(_){}
+
+    return response;
+  }
+
+  window.fetch=async function(input,init){
+    const url=requestUrl(input);
+    const method=currentMethod(input,init);
+
+    if(
+      isGameLock &&
+      method==='POST' &&
+      /\/api\/quiz-result(?:\?|$)/i.test(url)
+    ){
+      return handleQuizResult(input,init);
+    }
+
+    if(
+      isGameLock &&
+      method==='POST' &&
+      /\/api\/tts\/(?:synthesize|stream)(?:\?|$)/i.test(url) &&
+      'caches' in window
+    ){
+      return localCachedTts(input,init);
+    }
+
+    return nativeFetch(input,init);
+  };
+
+  function textOf(el){
+    return String(el?.textContent||'').replace(/\s+/g,' ').trim();
+  }
+  function important(el,name,value){
+    if(el)el.style.setProperty(name,value,'important');
+  }
+
+  function repairLessonLayout(){
+    const view=document.getElementById('view-lessons');
+    if(!view)return;
+
+    const heading=view.querySelector('.section-heading');
+    const select=document.getElementById('lessonSelect');
+
+    let nav=document.getElementById('bwLessonNav');
+    if(!nav){
+      nav=document.createElement('div');
+      nav.id='bwLessonNav';
+      view.insertBefore(nav,view.firstChild);
+    }
+
+    [...view.querySelectorAll('button,a')].forEach(el=>{
+      const t=textOf(el);
+      if(
+        (t.includes('หน้าวิชา')||t.includes('หน้าหลัก')) &&
+        !el.closest('#lessonContent')
+      ){
+        if(el.parentElement!==nav)nav.appendChild(el);
+      }
+    });
+
+    if(heading){
+      important(heading,'display','block');
+      important(heading,'width','100%');
+      important(heading,'position','static');
+    }
+
+    if(select){
+      if(select.parentElement!==view){
+        const ref=heading?heading.nextSibling:view.firstChild;
+        view.insertBefore(select,ref);
+      }
+      important(select,'position','static');
+      important(select,'float','none');
+      important(select,'display','block');
+      important(select,'width','100%');
+      important(select,'max-width','none');
+      important(select,'margin','0 0 12px');
+    }
+  }
+
+  function repairQuizLayout(){
+    const view=document.getElementById('view-quiz');
+    if(!view)return;
+
+    const top=view.querySelector('.quiz-topline');
+    const exit=document.getElementById('backToQuizSelect');
+    const progress=top?.querySelector('.quiz-progress-wrap');
+
+    if(top){
+      important(top,'display','block');
+      important(top,'width','100%');
+
+      if(exit){
+        if(top.firstElementChild!==exit){
+          top.insertBefore(exit,top.firstElementChild);
+        }
+        important(exit,'display','block');
+        important(exit,'position','static');
+        important(exit,'float','none');
+        important(exit,'width','100%');
+        important(exit,'max-width','none');
+        important(exit,'margin','0 0 12px');
+      }
+
+      if(progress){
+        important(progress,'width','100%');
+        important(progress,'min-width','0');
+      }
+    }
+  }
+
+  function repairAll(){
+    repairLessonLayout();
+    repairQuizLayout();
+    applySubjectVisibility();
+  }
+
+  clearOldDaily();
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    repairAll();
+    let repairTimer=0;
+    const obs=new MutationObserver(()=>{
+      clearTimeout(repairTimer);
+      repairTimer=setTimeout(repairAll,100);
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+    setTimeout(repairAll,250);
+    setTimeout(repairAll,900);
+  });
+
+  window.addEventListener('pageshow',repairAll);
+  window.addEventListener('resize',repairAll);
+})();
 </script>
+<!-- QUIZWEB_BW_CLIENT_END -->
+
+<!-- QUIZWEB_BY_QUIZ_UX_START -->
+<style id="quizweb-by-style">
+#quizwebByMode{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:0 0 12px;
+  padding:10px;
+  border-radius:16px;
+  background:rgba(224,240,249,.72);
+}
+#quizwebByMode .by-label{
+  font-size:13px;
+  font-weight:700;
+  color:#526d7e;
+  margin-right:2px;
+}
+#quizwebByMode button{
+  border:0;
+  border-radius:999px;
+  padding:8px 12px;
+  font:600 14px/1.2 "Sarabun",sans-serif;
+  background:rgba(255,255,255,.85);
+  color:#31566c;
+  cursor:pointer;
+}
+#quizwebByMode button.active{
+  background:#d0eaf8;
+  color:#174d69;
+  box-shadow:0 0 0 2px rgba(69,153,199,.14) inset;
+}
+body.quizweb-by-final #feedbackBox{
+  display:none !important;
+}
+#quizwebByResultsShortcut{
+  display:flex;
+  justify-content:center;
+  margin:14px 0 4px;
+}
+#quizwebByResultsShortcut button{
+  border:0;
+  border-radius:16px;
+  min-height:42px;
+  padding:9px 16px;
+  background:#e7f3fa;
+  color:#2f5d75;
+  font:600 15px/1.2 "Sarabun",sans-serif;
+  cursor:pointer;
+}
+#quizwebByHistory{
+  margin-top:16px;
+}
+#quizwebByHistory .by-history-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+#quizwebByHistory .by-history-head h3{
+  margin:0;
+}
+#quizwebByHistory .by-history-list{
+  display:grid;
+  gap:9px;
+}
+#quizwebByHistory .by-history-item{
+  border-radius:15px;
+  padding:11px 13px;
+  background:rgba(233,245,251,.82);
+}
+#quizwebByHistory .by-history-title{
+  font-weight:700;
+  color:#294f64;
+}
+#quizwebByHistory .by-history-meta{
+  margin-top:3px;
+  font-size:13px;
+  color:#6a8291;
+}
+#quizwebByHistory .by-history-subjects{
+  margin-top:6px;
+  font-size:13px;
+  color:#4c6878;
+  line-height:1.5;
+}
+</style>
+<script id="quizweb-by-script">
+(function(){
+  'use strict';
+
+  const params=new URLSearchParams(location.search||'');
+  const quizMode=params.get('quizMode')==='all'?'all':'one';
+  const quizRound=params.get('quizRound')||('legacy-'+localDay());
+  const HISTORY_KEY='quizWebResultHistoryV2';
+
+  function localDay(d=new Date()){
+    const p=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  }
+  function roundKey(day){return 'quizWebResultRoundCounter:'+day}
+  function pendingAllKey(day){return 'quizWebPendingAllRound:'+day}
+  function nextRound(day){
+    let n=0;
+    try{n=Number(localStorage.getItem(roundKey(day))||0)}catch(_){}
+    n=Math.max(0,Math.floor(n))+1;
+    try{localStorage.setItem(roundKey(day),String(n))}catch(_){}
+    return n;
+  }
+  function readHistory(){
+    try{
+      const a=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+      return Array.isArray(a)?a:[];
+    }catch(_){return []}
+  }
+  function writeHistory(a){
+    try{localStorage.setItem(HISTORY_KEY,JSON.stringify((a||[]).slice(0,120)))}catch(_){}
+  }
+  function appendHistory(r){
+    const a=readHistory();
+    if(r.id&&a.some(x=>x&&x.id===r.id))return;
+    a.unshift(r);
+    writeHistory(a);
+    setTimeout(renderHistory,0);
+  }
+  function subjectTitle(id){
+    try{
+      const s=(window.QUIZ_DATA?.subjects||[]).find(x=>String(x.id||'')===String(id||''));
+      if(s?.title)return String(s.title);
+    }catch(_){}
+    const label=String(
+      document.getElementById('quizSubjectLabel')?.textContent||
+      document.getElementById('lessonSubjectLabel')?.textContent||
+      ''
+    ).trim();
+    return label||String(id||'วิชา');
+  }
+  function parseJson(v){
+    try{return JSON.parse(String(v||''))}catch(_){return null}
+  }
+  function readPendingAll(day){
+    try{
+      const p=JSON.parse(localStorage.getItem(pendingAllKey(day))||'null');
+      return p&&typeof p==='object'?p:null;
+    }catch(_){return null}
+  }
+  function writePendingAll(day,p){
+    try{localStorage.setItem(pendingAllKey(day),JSON.stringify(p))}catch(_){}
+  }
+  function clearPendingAll(day){
+    try{localStorage.removeItem(pendingAllKey(day))}catch(_){}
+  }
+  function rememberFinishedResult(raw){
+    const r=typeof raw==='string'?parseJson(raw):raw;
+    if(!r||typeof r!=='object')return;
+
+    const finished=new Date(r.finishedAt||Date.now());
+    const day=localDay(finished);
+    const subjectId=String(r.subjectId||'');
+    const title=subjectTitle(subjectId);
+    const total=Math.max(0,Number(r.total)||0);
+    const score=Math.max(0,Number(r.score)||0);
+    const wrong=Math.max(0,total-score);
+
+    if(quizMode==='all'){
+      let pending=readPendingAll(day);
+      if(!pending){
+        pending={
+          day,
+          round:nextRound(day),
+          startedAt:finished.toISOString(),
+          subjects:{}
+        };
+      }
+      pending.subjects=pending.subjects||{};
+      pending.subjects[subjectId||title]={
+        subjectId,
+        subjectTitle:title,
+        quizName:String(r.quizName||''),
+        score,
+        total,
+        wrong,
+        finishedAt:finished.toISOString()
+      };
+      writePendingAll(day,pending);
+      return;
+    }
+
+    appendHistory({
+      id:`one:${r.finishedAt||finished.toISOString()}:${subjectId}:${score}:${total}`,
+      type:'one',
+      day,
+      round:nextRound(day),
+      finishedAt:finished.toISOString(),
+      subjectId,
+      subjectTitle:title,
+      quizName:String(r.quizName||''),
+      score,
+      total,
+      wrong
+    });
+  }
+
+  try{
+    const nativeSetItem=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+      const ret=nativeSetItem.apply(this,arguments);
+      try{
+        if(
+          this===localStorage &&
+          typeof key==='string' &&
+          key.startsWith('quizWebLastResult:')
+        ){
+          setTimeout(()=>rememberFinishedResult(value),0);
+        }
+      }catch(_){}
+      return ret;
+    };
+  }catch(_){}
+
+  function requestUrl(input){
+    try{return typeof input==='string'?input:(input?.url||String(input||''))}
+    catch(_){return String(input||'')}
+  }
+  function requestMethod(input,init){
+    return String(init?.method||(typeof input!=='string'&&input?.method)||'GET').toUpperCase();
+  }
+
+  const previousFetch=window.fetch.bind(window);
+  window.fetch=async function(input,init){
+    const response=await previousFetch(input,init);
+
+    try{
+      const url=requestUrl(input);
+      if(
+        quizMode==='all' &&
+        requestMethod(input,init)==='POST' &&
+        /\/api\/quiz-result(?:\?|$)/i.test(url) &&
+        response.ok
+      ){
+        const result=await response.clone().json();
+        if(result&&result.mode==='all'&&result.roundComplete){
+          const day=localDay();
+          const pending=readPendingAll(day);
+          if(pending){
+            const subjects=Object.values(pending.subjects||{});
+            const totalScore=subjects.reduce((s,x)=>s+(Number(x.score)||0),0);
+            const totalQuestions=subjects.reduce((s,x)=>s+(Number(x.total)||0),0);
+            const wrong=subjects.reduce((s,x)=>s+(Number(x.wrong)||0),0);
+            const average=Number(result.averageScore)||(
+              subjects.length
+                ? subjects.reduce((s,x)=>s+((Number(x.score)||0)*30/Math.max(1,Number(x.total)||30)),0)/subjects.length
+                : 0
+            );
+
+            appendHistory({
+              id:`all:${day}:${pending.round}:${pending.startedAt||Date.now()}`,
+              type:'all',
+              day,
+              round:Number(pending.round)||nextRound(day),
+              finishedAt:new Date().toISOString(),
+              score:totalScore,
+              total:totalQuestions,
+              wrong,
+              average:Math.round(average*100)/100,
+              grantedMinutes:Number(result.grantedMinutes)||0,
+              subjects
+            });
+            clearPendingAll(day);
+          }
+        }
+      }
+    }catch(_){}
+
+    return response;
+  };
+
+  /* Quiz speech: always use the device/browser voice. No server TTS. */
+  function stopDeviceSpeech(){
+    try{window.speechSynthesis?.cancel()}catch(_){}
+  }
+  function speakDevice(text){
+    text=String(text||'').replace(/\s+/g,' ').trim();
+    if(!text||!('speechSynthesis' in window))return;
+
+    stopDeviceSpeech();
+    const utter=new SpeechSynthesisUtterance(text);
+    utter.lang='th-TH';
+    utter.rate=1;
+    utter.pitch=1;
+
+    const status=document.getElementById('speechStatus');
+    if(status)status.textContent='กำลังใช้เสียงของอุปกรณ์';
+
+    utter.onend=()=>{
+      if(status)status.textContent='อ่านจบแล้ว • เสียงของอุปกรณ์';
+    };
+    utter.onerror=()=>{
+      if(status)status.textContent='อ่านไม่สำเร็จ • ลองกดอ่านอีกครั้ง';
+    };
+
+    window.speechSynthesis.speak(utter);
+  }
+  function wholeQuestionText(){
+    const q=String(document.getElementById('questionText')?.textContent||'').trim();
+    const parts=q?[`คำถาม ${q}`]:[];
+    const speechLetters=['กอไก่','ขอไข่','คอควาย','งองู'];
+    [...document.querySelectorAll('#optionList .option')].forEach((el,i)=>{
+      const t=String(el.querySelector('.option-text')?.textContent||'').trim();
+      if(t)parts.push(`${speechLetters[i]||('ตัวเลือก '+(i+1))} ${t}`);
+    });
+    return parts.join(' ');
+  }
+  function optionText(el){
+    const option=el.closest('.option');
+    if(!option)return '';
+    const i=[...document.querySelectorAll('#optionList .option')].indexOf(option);
+    const speechLetters=['กอไก่','ขอไข่','คอควาย','งองู'];
+    const t=String(option.querySelector('.option-text')?.textContent||'').trim();
+    return `${speechLetters[i]||''} ${t}`.trim();
+  }
+  document.addEventListener('click',ev=>{
+    const all=ev.target?.closest?.('#readQuestionAllBtn');
+    const one=ev.target?.closest?.('.option-speak');
+    if(!all&&!one)return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.stopImmediatePropagation();
+    speakDevice(all?wholeQuestionText():optionText(one));
+  },true);
+  document.addEventListener('keydown',ev=>{
+    if(ev.key!=='Enter'&&ev.key!==' ')return;
+    const one=ev.target?.closest?.('.option-speak');
+    if(!one)return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.stopImmediatePropagation();
+    speakDevice(optionText(one));
+  },true);
+
+  /* Answer mode */
+  const ANSWER_MODE_KEY='quizWebAnswerMode';
+  function answerMode(){
+    try{return localStorage.getItem(ANSWER_MODE_KEY)==='final'?'final':'review'}
+    catch(_){return 'review'}
+  }
+  function setAnswerMode(mode){
+    const v=mode==='final'?'final':'review';
+    try{localStorage.setItem(ANSWER_MODE_KEY,v)}catch(_){}
+    document.body?.classList.toggle('quizweb-by-final',v==='final');
+    document.querySelectorAll('#quizwebByMode [data-mode]').forEach(b=>{
+      b.classList.toggle('active',b.dataset.mode===v);
+    });
+    const check=document.getElementById('checkAnswerBtn');
+    if(check)check.textContent=v==='final'?'บันทึกคำตอบ':'ตรวจคำตอบ';
+  }
+  function ensureModeUi(){
+    const view=document.getElementById('view-quiz');
+    const top=view?.querySelector('.quiz-topline');
+    if(!view||!top)return;
+
+    let box=document.getElementById('quizwebByMode');
+    if(!box){
+      box=document.createElement('div');
+      box.id='quizwebByMode';
+      box.innerHTML=
+        '<span class="by-label">โหมดตรวจคำตอบ</span>'+
+        '<button type="button" data-mode="review">ดูเฉลยแต่ละข้อ</button>'+
+        '<button type="button" data-mode="final">ตรวจเมื่อจบชุด</button>';
+      top.insertAdjacentElement('afterend',box);
+
+      box.querySelectorAll('[data-mode]').forEach(b=>{
+        b.addEventListener('click',()=>{
+          setAnswerMode(b.dataset.mode);
+        });
+      });
+    }
+    setAnswerMode(answerMode());
+  }
+
+  document.addEventListener('click',ev=>{
+    const check=ev.target?.closest?.('#checkAnswerBtn');
+    if(!check)return;
+
+    const progress=String(document.getElementById('quizProgressText')?.textContent||'');
+    const mode=answerMode();
+
+    setTimeout(()=>{
+      const same=String(document.getElementById('quizProgressText')?.textContent||'')===progress;
+      if(!same)return;
+
+      if(mode==='final'){
+        document.getElementById('feedbackBox')?.classList.add('hidden');
+        document.querySelectorAll('#optionList .option.correct,#optionList .option.wrong')
+          .forEach(x=>x.classList.remove('correct','wrong'));
+      }
+
+      const next=document.getElementById('nextQuestionBtn');
+      if(next&&!next.classList.contains('hidden')){
+        setTimeout(()=>{
+          const stillSame=String(document.getElementById('quizProgressText')?.textContent||'')===progress;
+          if(stillSame)next.click();
+        },mode==='final'?120:950);
+      }
+    },0);
+  });
+
+  function esc(s){
+    return String(s??'').replace(/[&<>"']/g,c=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function fmtDate(iso){
+    try{
+      return new Date(iso).toLocaleString('th-TH',{
+        year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit'
+      });
+    }catch(_){return String(iso||'')}
+  }
+  function renderHistory(){
+    const host=document.getElementById('resultContent');
+    if(!host)return;
+
+    let card=document.getElementById('quizwebByHistory');
+    if(!card){
+      card=document.createElement('article');
+      card.id='quizwebByHistory';
+      card.className='card lesson-section';
+      host.appendChild(card);
+    }
+
+    const rows=readHistory().slice(0,30);
+    const signature=JSON.stringify(rows);
+    if(card.dataset.historySignature===signature)return;
+    card.dataset.historySignature=signature;
+
+    card.innerHTML=
+      '<div class="by-history-head"><h3>ผลการทดสอบย้อนหลัง</h3></div>'+
+      (
+        rows.length
+          ? '<div class="by-history-list">'+rows.map(r=>{
+              if(r.type==='all'){
+                const detail=(r.subjects||[]).map(s=>
+                  `${esc(s.subjectTitle||'วิชา')} ${Number(s.score)||0}/${Number(s.total)||0}`
+                ).join(' • ');
+                return `<div class="by-history-item">
+                  <div class="by-history-title">${esc(fmtDate(r.finishedAt))} • รอบ ${Number(r.round)||1} • ทุกวิชา</div>
+                  <div class="by-history-meta">รวม ${Number(r.score)||0}/${Number(r.total)||0} • ผิด ${Number(r.wrong)||0} ข้อ • คะแนนเฉลี่ย ${Number(r.average||0).toFixed(2)}/30</div>
+                  ${detail?`<div class="by-history-subjects">${detail}</div>`:''}
+                </div>`;
+              }
+              return `<div class="by-history-item">
+                <div class="by-history-title">${esc(fmtDate(r.finishedAt))} • รอบ ${Number(r.round)||1} • ${esc(r.subjectTitle||r.quizName||'วิชา')}</div>
+                <div class="by-history-meta">คะแนน ${Number(r.score)||0}/${Number(r.total)||0} • ผิด ${Number(r.wrong)||0} ข้อ</div>
+              </div>`;
+            }).join('')+'</div>'
+          : '<p class="muted">ยังไม่มีประวัติการทำแบบทดสอบ</p>'
+      );
+  }
+
+  function ensureResultShortcut(){
+    const grid=document.getElementById('subjectGrid');
+    if(!grid||document.getElementById('quizwebByResultsShortcut'))return;
+
+    const wrap=document.createElement('div');
+    wrap.id='quizwebByResultsShortcut';
+    wrap.innerHTML='<button type="button">ผลการทดสอบ</button>';
+    grid.insertAdjacentElement('afterend',wrap);
+    wrap.querySelector('button').onclick=()=>{
+      const tab=document.querySelector('[data-view="results"]');
+      if(tab)tab.click();
+      setTimeout(renderHistory,0);
+    };
+  }
+
+  function refreshUi(){
+    ensureModeUi();
+    ensureResultShortcut();
+    setAnswerMode(answerMode());
+    const view=document.getElementById('view-results');
+    if(view?.classList.contains('active'))renderHistory();
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    refreshUi();
+    const observer=new MutationObserver(()=>setTimeout(refreshUi,0));
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    setTimeout(refreshUi,300);
+    setTimeout(refreshUi,1000);
+  });
+})();
+</script>
+<!-- QUIZWEB_BY_QUIZ_UX_END -->
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">แบบเรียนและแบบทดสอบ ป.3</div>
+        <h1>ศูนย์การเรียนรู้</h1>
+        <p class="subtitle">เลือกวิชา อ่านเนื้อหาสรุป แล้วทำแบบทดสอบได้ในที่เดียว</p>
+      </div>
+      <button class="icon-btn" id="stopSpeechBtn" type="button" title="หยุดอ่านออกเสียง" aria-label="หยุดอ่านออกเสียง">■ หยุดเสียง</button>
+    </header>
+
+    <nav class="tabbar" aria-label="เมนูหลัก">
+      <button class="tab active" data-view="home" type="button">วิชาทั้งหมด</button>
+      <button class="tab" data-view="settings" type="button">เสียงอ่าน</button>
+      <button class="tab subject-only" data-view="subject" type="button">หน้าวิชา</button>
+      <button class="tab subject-only" data-view="lessons" type="button">อ่านเนื้อหา</button>
+      <button class="tab subject-only" data-view="quizSelect" type="button">แบบทดสอบ</button>
+      <button class="tab subject-only" data-view="results" type="button">ผลการทำ</button>
+    </nav>
+
+    <main>
+      <section id="view-home" class="view active">
+        <div class="welcome card">
+          <h2>เลือกวิชาที่ต้องการเรียน</h2>
+          <div class="welcome-actions">
+            <button class="secondary go-settings" type="button">⚙ ตั้งค่าเสียงอ่าน</button>
+          </div>
+        </div>
+        <div id="subjectGrid" class="subject-grid"></div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ตั้งค่าเสียงอ่าน</span>
+            <h2>เลือกเสียงให้ฟังชัดและสบายหู</h2>
+            <p class="muted">ตั้งค่าครั้งเดียว แล้วระบบจะจำไว้ให้ ใช้กับบทเรียนและแบบทดสอบทั้งหมด</p>
+          </div>
+        </div>
+
+        <div class="settings-layout">
+          <section class="card settings-main">
+            <div class="settings-head">
+              <div>
+                <span class="pill">Microsoft Edge Neural</span>
+                <h3>เสียงหลักของระบบ</h3>
+                <p class="muted">ระบบจะใช้เสียงที่คุณเลือกเพียงเสียงเดียว และอ่านเป็นช่วงสั้น ๆ พร้อมเว้นจังหวะให้จับใจความง่ายขึ้น</p>
+              </div>
+              <div class="status-chip" id="speechStatus">กำลังตรวจสอบระบบเสียง…</div>
+            </div>
+
+            <div class="settings-grid">
+              <div class="setting-card">
+                <label for="speechVoice" class="setting-label">เสียง</label>
+                <select id="speechVoice" class="select voice-select" aria-label="เลือกเสียงภาษาไทย"></select>
+                <p class="setting-help">แนะนำ Premwadee ถ้าต้องการโทนผู้หญิงชัด ๆ</p>
+              </div>
+
+              <div class="setting-card">
+                <div class="setting-row">
+                  <label for="speechRate" class="setting-label">ความเร็ว</label>
+                  <span id="speechRateValue" class="rate-badge">0.85x</span>
+                </div>
+                <input id="speechRate" type="range" min="0.75" max="1.05" step="0.05" value="0.85" />
+                <p class="setting-help">ค่าประมาณ 0.85x–0.95x มักฟังเข้าใจง่าย</p>
+              </div>
+
+              <div class="setting-card action-card">
+                <div>
+                  <div class="setting-label">ทดลองเสียง</div>
+                  <p class="setting-help">ฟังตัวอย่างก่อนเริ่มเรียนจริง</p>
+                </div>
+                <button id="testSpeechBtn" class="primary large" type="button">▶ ทดลองเสียง</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="card settings-side">
+            <h3>เคล็ดลับ</h3>
+            <ul class="quick-tips">
+              <li>ถ้าฟังเร็วไป ให้ลดความเร็วลงเล็กน้อย</li>
+              <li>ถ้าชอบเสียงผู้หญิง ให้เลือก Premwadee หรือ Achara</li>
+              <li>โจทย์และตัวเลือกจะถูกเตรียมเสียงพร้อมกันล่วงหน้า เพื่อให้เว้นจังหวะชัดโดยไม่ต้องรอทีละช่วง</li>
+              <li>ถ้าระบบเสียงออนไลน์มีปัญหา ระบบจะหยุดและแจ้งเตือนแทนการเปลี่ยนไปใช้เสียงอื่น</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-subject" class="view">
+        <button class="ghost back-subjects" type="button">หน้าหลัก</button>
+        <div id="subjectHero" class="hero card"></div>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">เนื้อหาในวิชานี้</span>
+            <h2>เลือกบทเรียน</h2>
+          </div>
+        </div>
+        <div id="homeLessonGrid" class="lesson-grid"></div>
+      </section>
+
+      <section id="view-lessons" class="view">
+        <div class="section-heading split">
+          <div>
+            <button class="ghost back-to-subject" type="button">หน้าวิชา</button>
+            <span id="lessonSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2 id="lessonTitle">บทเรียน</h2>
+          </div>
+          <select id="lessonSelect" class="select" aria-label="เลือกบทเรียน"></select>
+        </div>
+        <div class="audio-toolbar card compact">
+          <button id="readLessonBtn" class="primary" type="button">🔊 อ่านบทนี้ทั้งหมด</button>
+          <span class="muted">ตั้งค่าเสียงได้ที่แท็บ “เสียงอ่าน”</span>
+        </div>
+        <div id="lessonContent" class="lesson-content"></div>
+        <div class="lesson-bottom-actions">
+          <button id="lessonBackBtn" class="secondary large" type="button">กลับหน้าวิชา</button>
+        </div>
+      </section>
+
+      <section id="view-quizSelect" class="view">
+        <div class="section-heading">
+          <div>
+            <button class="ghost back-to-subject" type="button">หน้าวิชา</button>
+            <span id="quizSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2>แบบทดสอบ</h2>
+          </div>
+        </div>
+        <div id="quizSetGrid" class="quiz-set-grid"></div>
+      </section>
+
+      <section id="view-quiz" class="view">
+        <div class="quiz-topline">
+          <button id="backToQuizSelect" class="ghost" type="button">ออกจากแบบทดสอบ</button>
+          <div class="quiz-progress-wrap">
+            <div class="quiz-meta"><span id="quizSetName"></span><span id="quizProgressText"></span></div>
+            <div class="progress"><span id="quizProgressBar"></span></div>
+          </div>
+        </div>
+
+        <article class="quiz-card card">
+          <div class="question-source-row">
+            <span id="questionSource" class="source-badge"></span>
+            <button id="readQuestionAllBtn" class="listen-btn" type="button"><span class="btn-icon speaker-icon" aria-hidden="true">🔊</span><span>อ่านโจทย์และตัวเลือก</span></button>
+          </div>
+          <h2 id="questionText" class="question-text"></h2>
+          <div id="questionMedia" class="question-media"></div>
+          <div id="optionList" class="option-list"></div>
+          <div id="feedbackBox" class="feedback hidden" role="status"></div>
+          <div class="quiz-actions">
+            <button id="checkAnswerBtn" class="primary large" type="button" disabled>ตรวจคำตอบ</button>
+            <button id="nextQuestionBtn" class="primary large hidden" type="button">ข้อต่อไป</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="view-results" class="view">
+        <div class="section-heading">
+          <div>
+            <button class="ghost back-to-subject" type="button">หน้าวิชา</button>
+            <span id="resultSubjectLabel" class="eyebrow block-eyebrow"></span>
+            <h2>คะแนนล่าสุด</h2>
+          </div>
+        </div>
+        <div id="resultContent" class="result-wrap"></div>
+      </section>
+    </main>
+
+    <footer></footer>
+  </div>
+
+  <script src="voice-settings.js?v=voice20260918122121933"></script>
+  <script src="data.js?v=content20260922141324694"></script>
+<!-- QUIZWEB_CZ_TTS_PROGRESS_START -->
+<style id="quizweb-cz-tts-progress-style">
+#quizwebCzTtsProgress{
+  position:fixed;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
+  z-index:2147483000;
+  width:min(440px,calc(100vw - 28px));
+  padding:11px 14px 12px;
+  border-radius:16px;
+  background:rgba(247,252,255,.96);
+  box-shadow:0 10px 34px rgba(24,55,74,.22);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  font-family:"Sarabun","Segoe UI",sans-serif;
+  color:#27485d;
+  pointer-events:none;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .16s ease,visibility .16s ease;
+}
+#quizwebCzTtsProgress.show{opacity:1;visibility:visible}
+#quizwebCzTtsProgress .cz-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;font-weight:700}
+#quizwebCzTtsProgress .cz-detail{font-size:12px;font-weight:600;opacity:.72;white-space:nowrap}
+#quizwebCzTtsProgress .cz-track{height:7px;margin-top:8px;border-radius:999px;background:rgba(66,123,157,.17);overflow:hidden;position:relative}
+#quizwebCzTtsProgress .cz-fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#6cb6df,#68c99d);transition:width .14s linear}
+#quizwebCzTtsProgress.indeterminate .cz-fill{width:32%;animation:quizwebCzTtsMove 1.05s ease-in-out infinite}
+#quizwebCzTtsProgress.error .cz-fill{width:100%;animation:none;background:#e88d96}
+@keyframes quizwebCzTtsMove{0%{transform:translateX(-120%)}50%{transform:translateX(115%)}100%{transform:translateX(310%)}}
+</style>
+<script id="quizweb-cz-tts-progress-runtime">
+(function(){
+  'use strict';
+  if(window.__quizwebCzTtsProgressInstalled)return;
+  window.__quizwebCzTtsProgressInstalled=true;
+
+  const speechSelector='#readLessonBtn,.read-section,#readQuestionAllBtn,.option-speak,.listen-btn,#testSpeechBtn';
+  let armedUntil=0;
+  let startedAt=0;
+  let lastStage='';
+  let lastPercent=null;
+  let tickTimer=null;
+  let hideTimer=null;
+  let opSerial=0;
+  let panel=null,label=null,detail=null,fill=null;
+
+  function ensureUi(){
+    if(panel&&document.documentElement.contains(panel))return true;
+    if(!document.body)return false;
+    panel=document.createElement('div');
+    panel.id='quizwebCzTtsProgress';
+    panel.setAttribute('role','status');
+    panel.setAttribute('aria-live','polite');
+    panel.innerHTML='<div class="cz-row"><span class="cz-label">กำลังเตรียมเสียง...</span><span class="cz-detail"></span></div><div class="cz-track"><div class="cz-fill"></div></div>';
+    document.body.appendChild(panel);
+    label=panel.querySelector('.cz-label');
+    detail=panel.querySelector('.cz-detail');
+    fill=panel.querySelector('.cz-fill');
+    return true;
+  }
+
+  function elapsed(){return startedAt?Math.max(0,Math.floor((Date.now()-startedAt)/1000)):0}
+  function render(){
+    if(!ensureUi())return;
+    label.textContent=lastStage||'กำลังเตรียมเสียง...';
+    const sec=elapsed();
+    if(lastPercent!=null){
+      const p=Math.max(0,Math.min(100,Math.round(lastPercent)));
+      detail.textContent=p+'% • '+sec+' วินาที';
+      fill.style.width=p+'%';
+      panel.classList.remove('indeterminate');
+    }else{
+      detail.textContent=sec+' วินาที';
+      fill.style.width='';
+      panel.classList.add('indeterminate');
+    }
+  }
+  function start(stage){
+    clearTimeout(hideTimer);
+    armedUntil=Date.now()+180000;
+    startedAt=Date.now();
+    lastStage=stage||'กำลังเตรียมเสียง...';
+    lastPercent=null;
+    if(ensureUi()){
+      panel.classList.remove('error');
+      panel.classList.add('show','indeterminate');
+    }
+    clearInterval(tickTimer);
+    tickTimer=setInterval(render,500);
+    render();
+  }
+  function update(stage,percent){
+    if(Date.now()>armedUntil)return;
+    lastStage=stage||lastStage;
+    lastPercent=(typeof percent==='number'&&isFinite(percent))?percent:null;
+    if(ensureUi())panel.classList.add('show');
+    render();
+  }
+  function finish(stage,delay){
+    if(Date.now()>armedUntil)return;
+    lastStage=stage||'พร้อมอ่าน';
+    lastPercent=100;
+    render();
+    clearTimeout(hideTimer);
+    hideTimer=setTimeout(hide,delay==null?850:delay);
+  }
+  function fail(msg){
+    lastStage=msg||'โหลดเสียงไม่สำเร็จ';
+    lastPercent=100;
+    if(ensureUi())panel.classList.add('show','error');
+    render();
+    clearTimeout(hideTimer);
+    hideTimer=setTimeout(hide,3200);
+  }
+  function hide(){
+    clearInterval(tickTimer);tickTimer=null;
+    if(panel)panel.classList.remove('show','indeterminate','error');
+    lastPercent=null;lastStage='';startedAt=0;
+  }
+  function isTtsUrl(value){
+    const u=String(value||'');
+    return /\/api\/tts\/(?:stream|synthesize)(?:\?|$)/i.test(u);
+  }
+  function mediaUrl(el){
+    try{return String(el.currentSrc||el.src||'')}catch(_){return ''}
+  }
+
+  document.addEventListener('click',function(e){
+    const t=e.target&&e.target.closest?e.target.closest(speechSelector):null;
+    if(!t)return;
+    opSerial++;
+    start('กำลังเตรียมเสียง...');
+  },true);
+
+  // Fetch-based TTS: show real byte percentage whenever Content-Length is available.
+  const nativeFetch=window.fetch.bind(window);
+  window.fetch=async function(input,init){
+    const url=typeof input==='string'?input:(input&&input.url)||'';
+    const track=Date.now()<armedUntil&&isTtsUrl(url);
+    if(!track)return nativeFetch(input,init);
+    const myOp=opSerial;
+    update('กำลังสร้างเสียง...',null);
+    try{
+      const response=await nativeFetch(input,init);
+      if(!response.ok){fail('โหลดเสียงไม่สำเร็จ');return response}
+      if(!response.body||typeof response.body.getReader!=='function'){
+        update('กำลังดาวน์โหลดเสียง...',null);
+        return response;
+      }
+      const total=Number(response.headers.get('content-length')||0);
+      const reader=response.body.getReader();
+      const chunks=[];
+      let loaded=0;
+      update(total>0?'กำลังดาวน์โหลดเสียง...':'กำลังดาวน์โหลดเสียง...',total>0?0:null);
+      while(true){
+        const part=await reader.read();
+        if(part.done)break;
+        chunks.push(part.value);loaded+=part.value.byteLength;
+        if(total>0)update('กำลังดาวน์โหลดเสียง...',loaded*100/total);
+        else update('กำลังดาวน์โหลดเสียง...',null);
+      }
+      const bytes=new Uint8Array(loaded);let offset=0;
+      chunks.forEach(c=>{bytes.set(c,offset);offset+=c.byteLength});
+      if(myOp===opSerial)finish('ดาวน์โหลดเสร็จ • กำลังเริ่มอ่าน',520);
+      return new Response(bytes,{status:response.status,statusText:response.statusText,headers:response.headers});
+    }catch(err){
+      if(myOp===opSerial)fail('โหลดเสียงไม่สำเร็จ');
+      throw err;
+    }
+  };
+
+  // Direct <audio src="/api/tts/..."> path. Browsers don't expose byte totals,
+  // so show an indeterminate bar + elapsed seconds, then 100% when ready.
+  document.addEventListener('loadstart',function(e){
+    const el=e.target;
+    if(!el||!(el instanceof HTMLMediaElement)||Date.now()>armedUntil)return;
+    if(isTtsUrl(mediaUrl(el)))update('กำลังดาวน์โหลดเสียง...',null);
+  },true);
+  document.addEventListener('progress',function(e){
+    const el=e.target;
+    if(!el||!(el instanceof HTMLMediaElement)||Date.now()>armedUntil||!isTtsUrl(mediaUrl(el)))return;
+    try{
+      if(isFinite(el.duration)&&el.duration>0&&el.buffered&&el.buffered.length){
+        const pct=Math.min(99,(el.buffered.end(el.buffered.length-1)/el.duration)*100);
+        update('กำลังดาวน์โหลดเสียง...',pct);
+      }else update('กำลังดาวน์โหลดเสียง...',null);
+    }catch(_){update('กำลังดาวน์โหลดเสียง...',null)}
+  },true);
+  document.addEventListener('canplaythrough',function(e){
+    const el=e.target;
+    if(el instanceof HTMLMediaElement&&Date.now()<armedUntil&&isTtsUrl(mediaUrl(el)))finish('พร้อมอ่าน',420);
+  },true);
+  document.addEventListener('playing',function(e){
+    const el=e.target;
+    if(!(el instanceof HTMLMediaElement)||Date.now()>armedUntil)return;
+    const u=mediaUrl(el);
+    if(isTtsUrl(u)||u.startsWith('blob:'))finish('กำลังอ่าน...',650);
+  },true);
+  document.addEventListener('error',function(e){
+    const el=e.target;
+    if(el instanceof HTMLMediaElement&&Date.now()<armedUntil&&isTtsUrl(mediaUrl(el)))fail('โหลดเสียงไม่สำเร็จ');
+  },true);
+
+  // Safety: never leave a stale wait indicator forever.
+  setInterval(function(){
+    if(panel&&panel.classList.contains('show')&&startedAt&&Date.now()-startedAt>95000)fail('รอเสียงนานเกินไป กรุณาลองใหม่');
+  },2000);
+})();
+</script>
+<!-- QUIZWEB_CZ_TTS_PROGRESS_END -->
+<script src="app.js?v=ANDROID-R2-20260929123000"></script>
+<!-- QUIZWEB_CE_SPEECH_RATE_START -->
+<script id="quizweb-ce-speech-rate">
+(function(){
+  'use strict';
+
+  const KEY = 'quizWebSpeechRate';
+  const FLAG = 'quizWebSpeechRateCEPacing';
+
+  function migrate(){
+    try {
+      if (localStorage.getItem(FLAG)) return;
+
+      const saved = Number(localStorage.getItem(KEY));
+      const next =
+        saved >= 0.75 && saved <= 1.05
+          ? Math.max(0.75, Math.round((saved - 0.05) * 100) / 100)
+          : 0.85;
+
+      localStorage.setItem(KEY, String(next));
+      localStorage.setItem(FLAG, '1');
+
+      const input = document.getElementById('speechRate');
+      if (input) {
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        input.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+
+      const label = document.getElementById('speechRateValue');
+      if (label) {
+        label.textContent = next.toFixed(2).replace(/0$/, '') + 'x';
+      }
+    } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(migrate, 0);
+    }, {once:true});
+  } else {
+    setTimeout(migrate, 0);
+  }
+})();
+</script>
+<!-- QUIZWEB_CE_SPEECH_RATE_END -->
+<!-- QUIZWEB_CE_SPEECH_RATE_START -->
+<script id="quizweb-ce-speech-rate">
+(function(){
+  'use strict';
+
+  const KEY = 'quizWebSpeechRate';
+  const FLAG = 'quizWebSpeechRateCEPacing';
+
+  function migrate(){
+    try {
+      if (localStorage.getItem(FLAG)) return;
+
+      const saved = Number(localStorage.getItem(KEY));
+      const next =
+        saved >= 0.75 && saved <= 1.05
+          ? Math.max(0.75, Math.round((saved - 0.05) * 100) / 100)
+          : 0.85;
+
+      localStorage.setItem(KEY, String(next));
+      localStorage.setItem(FLAG, '1');
+
+      const input = document.getElementById('speechRate');
+      if (input) {
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        input.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+
+      const label = document.getElementById('speechRateValue');
+      if (label) {
+        label.textContent = next.toFixed(2).replace(/0$/, '') + 'x';
+      }
+    } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(migrate, 0);
+    }, {once:true});
+  } else {
+    setTimeout(migrate, 0);
+  }
+})();
+</script>
+<!-- QUIZWEB_CE_SPEECH_RATE_END -->
+<!-- QUIZWEB_CF_APP_HOME_START -->
+<style id="quizweb-cf-app-home-style">
+#quizwebCfAppHomeWrap{
+  margin:0 0 14px;
+}
+#quizwebCfAppHomeBtn{
+  width:100%;
+  min-height:46px;
+  border:0;
+  border-radius:15px;
+  padding:11px 16px;
+  background:#eef4f8;
+  color:#35566c;
+  font:700 16px/1.2 "Sarabun","Segoe UI",sans-serif;
+  box-shadow:0 6px 18px rgba(44,67,83,.10);
+  cursor:pointer;
+}
+#quizwebCfAppHomeBtn:active{
+  transform:translateY(1px);
+}
+</style>
+<script id="quizweb-cf-app-home">
+(function(){
+  'use strict';
+
+  // App only. Do not add this control to the normal browser site.
+  if (!(window.chrome && window.chrome.webview)) return;
+
+  function install(){
+    const grid = document.getElementById('subjectGrid');
+    if (!grid || document.getElementById('quizwebCfAppHomeWrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'quizwebCfAppHomeWrap';
+
+    const btn = document.createElement('button');
+    btn.id = 'quizwebCfAppHomeBtn';
+    btn.type = 'button';
+    btn.textContent = '← กลับหน้าหลักแอป';
+
+    btn.addEventListener('click', function(){
+      try{
+        window.chrome.webview.postMessage(
+          JSON.stringify({action:'closeQuiz'})
+        );
+      }catch(_){}
+    });
+
+    wrap.appendChild(btn);
+    grid.parentNode.insertBefore(wrap, grid);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', install, {once:true});
+  } else {
+    install();
+  }
+
+  // subjectGrid may be created after initial navigation.
+  const observer = new MutationObserver(function(){
+    if (document.getElementById('quizwebCfAppHomeWrap')) return;
+    if (document.getElementById('subjectGrid')) install();
+  });
+
+  const startObserver = function(){
+    if (document.body) {
+      observer.observe(document.body, {childList:true, subtree:true});
+    }
+  };
+
+  if (document.body) startObserver();
+  else document.addEventListener('DOMContentLoaded', startObserver, {once:true});
+})();
+</script>
+<!-- QUIZWEB_CF_APP_HOME_END -->
+<!-- QUIZWEB_CH_SAFE_SINGLE_TAP_START -->
+<script id="quizweb-ch-safe-single-tap">
+(function(){
+  'use strict';
+  const params = new URLSearchParams(location.search || '');
+  const gameLockMode =
+    params.get('gamelock') === '1' ||
+    !!(window.chrome && window.chrome.webview);
+  if (!gameLockMode) return;
+
+  let checking = false;
+  document.addEventListener('click', function(ev){
+    if (checking) return;
+    const target = ev.target;
+    if (!target || !target.closest) return;
+    if (target.closest('.option-speak')) return;
+
+    const option = target.closest(
+      '#optionList .option, .option[data-index], #optionList [data-index]'
+    );
+    if (!option) return;
+
+    window.setTimeout(function(){
+      const check = document.getElementById('checkAnswerBtn');
+      if (!check || check.disabled || check.classList.contains('hidden')) return;
+
+      checking = true;
+      try {
+        check.click();
+
+        // Review-each mode must NEVER auto-click Next.
+        // Fail-safe only exposes the real Next button.
+        if (params.get('reviewEach') !== '0') {
+          window.setTimeout(function(){
+            const next = document.getElementById('nextQuestionBtn');
+            if (!next) return;
+            next.disabled = false;
+            next.hidden = false;
+            next.classList.remove('hidden');
+            if (!String(next.textContent || '').trim()) {
+              next.textContent = 'ไปข้อถัดไป';
+            }
+          }, 80);
+        }
+      } catch (_) {
+        const next = document.getElementById('nextQuestionBtn');
+        if (next) {
+          next.disabled = false;
+          next.hidden = false;
+          next.classList.remove('hidden');
+          if (!String(next.textContent || '').trim()) {
+            next.textContent = 'ไปข้อถัดไป';
+          }
+        }
+      } finally {
+        window.setTimeout(function(){ checking = false; }, 180);
+      }
+    }, 0);
+  }, false);
+})();
+</script>
+<!-- QUIZWEB_CH_SAFE_SINGLE_TAP_END -->
+<!-- QUIZWEB_CI_RUNTIME_START -->
+<style id="quizweb-ci-style">
+#subjectGrid>.quizweb-ci-disabled-subject,
+#subjectGrid>.quizweb-ci-round-done{display:none!important}
+</style>
+<script id="quizweb-ci-runtime">
+(function(){
+'use strict';
+const p=new URLSearchParams(location.search||'');
+const isGL=p.get('gamelock')==='1'||!!(window.chrome&&window.chrome.webview);
+if(!isGL)return;
+const mode=p.get('quizMode')==='all'?'all':'one';
+const round=p.get('quizRound')||'legacy';
+let mask=Number(p.get('subjectMask')||1073741823);
+if(!Number.isFinite(mask)||mask<1||mask>1073741823)mask=1073741823;
+const doneKey='quizWebAllModeDone:'+round;
+function readDone(){try{const a=JSON.parse(localStorage.getItem(doneKey)||'[]');return new Set(Array.isArray(a)?a.map(String):[])}catch(_){return new Set()}}
+function saveDone(s){try{localStorage.setItem(doneKey,JSON.stringify([...s]))}catch(_){}}
+function norm(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
+const allSubjects=(()=>{try{return Array.isArray(window.QUIZ_DATA?.subjects)?[...window.QUIZ_DATA.subjects]:[]}catch(_){return []}})();
+function subjectIndex(obj){
+ if(!obj)return -1;
+ const id=String(obj.id||'');
+ if(id){const i=allSubjects.findIndex(x=>String(x?.id||'')===id);if(i>=0)return i}
+ const title=norm(obj.title||obj.name||'');
+ if(title){const i=allSubjects.findIndex(x=>norm(x?.title||x?.name||'')===title);if(i>=0)return i}
+ return -1;
+}
+function bitFor(obj){const i=subjectIndex(obj);return i>=0&&i<30?Math.pow(2,i):0}
+function enabledObj(o){const b=bitFor(o);return b?((mask&b)!==0):true}
+try{
+ if(window.QUIZ_DATA&&Array.isArray(window.QUIZ_DATA.subjects)){
+   window.QUIZ_DATA.subjects=allSubjects.filter(enabledObj);
+ }
+}catch(_){}
+function cardInfo(card){
+ const id=String(card.dataset?.subject||card.querySelector?.('[data-subject]')?.dataset?.subject||'');
+ let obj=null;
+ try{obj=allSubjects.find(x=>String(x?.id||'')===id)||null}catch(_){}
+ if(!obj){
+   const text=norm(card.textContent);
+   obj=allSubjects.find(x=>{const t=norm(x?.title||x?.name||'');return t&&text.includes(t)})||null;
+ }
+ return {id,b:obj?bitFor(obj):0};
+}
+function apply(){
+ const grid=document.getElementById('subjectGrid');if(!grid)return;
+ const done=readDone();
+ [...grid.children].forEach(card=>{
+   if(card.id==='quizwebDailyCompleteNote'||card.id==='quizwebBwProgress')return;
+   const x=cardInfo(card);
+   const enabled=x.b?((mask&x.b)!==0):true;
+   card.classList.toggle('quizweb-ci-disabled-subject',!enabled);
+   card.classList.toggle('quizweb-ci-round-done',mode==='all'&&enabled&&!!x.id&&done.has(x.id));
+ });
+}
+const prevFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+ let url=typeof input==='string'?input:(input&&input.url)||String(input||'');
+ const method=String((init&&init.method)||(typeof input!=='string'&&input&&input.method)||'GET').toUpperCase();
+ let bodyText='';
+ if(method==='POST'&&/\/api\/quiz-result(?:\?|$)/i.test(url)){
+   try{bodyText=typeof init?.body==='string'?init.body:await input.clone().text()}catch(_){}
+ }
+ if(/\/api\/tts\/(?:stream|synthesize)(?:\?|$)/i.test(url)){
+   try{
+     if(typeof input==='string'){
+       const u=new URL(input,location.href);
+       const v=u.searchParams.get('voice')||'';
+       if(!/^th-TH-/i.test(v))u.searchParams.set('voice','th-TH-PremwadeeNeural');
+       input=u.toString();url=input;
+     }
+     if(init&&typeof init.body==='string'&&/^\s*\{/.test(init.body)){
+       const j=JSON.parse(init.body);
+       if(!/^th-TH-/i.test(String(j.voice||'')))j.voice='th-TH-PremwadeeNeural';
+       init={...init,body:JSON.stringify(j)};
+     }
+   }catch(_){}
+ }
+ const r=await prevFetch(input,init);
+ if(mode==='all'&&method==='POST'&&/\/api\/quiz-result(?:\?|$)/i.test(url)&&r.ok){
+   try{
+     const b=bodyText?JSON.parse(bodyText):{};
+     const id=String(b.subjectId||'');
+     if(id){const d=readDone();d.add(id);saveDone(d);setTimeout(apply,0)}
+   }catch(_){}
+ }
+ return r;
+};
+try{
+ if(window.speechSynthesis){
+   const nativeSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+   window.speechSynthesis.speak=function(u){
+     try{
+       const txt=String(u&&u.text||'');
+       if(/[\u0E00-\u0E7F]/.test(txt)){
+         u.lang='th-TH';
+         const vs=window.speechSynthesis.getVoices()||[];
+         const th=vs.find(v=>/^th(?:-|_)/i.test(v.lang||''))||vs.find(v=>/thai|ไทย/i.test(v.name||''));
+         if(th)u.voice=th;
+       }
+     }catch(_){}
+     return nativeSpeak(u);
+   };
+ }
+}catch(_){}
+document.addEventListener('DOMContentLoaded',()=>{
+ apply();
+ const g=document.getElementById('subjectGrid');
+ if(g)new MutationObserver(()=>setTimeout(apply,0)).observe(g,{childList:true,subtree:true});
+});
+window.addEventListener('pageshow',apply);
+setTimeout(apply,250);
+setTimeout(apply,900);
+})();
+</script>
+<!-- QUIZWEB_CI_RUNTIME_END -->
+<!-- QUIZWEB_CU_QUIZ_PLAYBACK_LOCK_START -->
+<style id="quizweb-cu-quiz-playback-lock-style">
+#view-quiz #readQuestionAllBtn.quizweb-cu-speech-playing,
+#view-quiz .option-speak.quizweb-cu-speech-playing{
+  pointer-events:none !important;
+  opacity:.46 !important;
+}
+</style>
+<script id="quizweb-cu-quiz-playback-lock">
+(function(){
+  'use strict';
+  const p=new URLSearchParams(location.search||'');
+  const isGL=p.get('gamelock')==='1'||!!(window.chrome&&window.chrome.webview);
+  if(!isGL)return;
+  const selector='#view-quiz #readQuestionAllBtn,#view-quiz .option-speak';
+  let playCount=0;
+  let unlockTimer=null;
+  let watchdog=null;
+  function buttons(){return document.querySelectorAll(selector)}
+  function paint(on){
+    buttons().forEach(el=>{
+      el.classList.toggle('quizweb-cu-speech-playing',!!on);
+      el.setAttribute('aria-busy',on?'true':'false');
+    });
+  }
+  function forceUnlock(){
+    playCount=0;
+    clearTimeout(unlockTimer);unlockTimer=null;
+    clearTimeout(watchdog);watchdog=null;
+    paint(false);
+  }
+  function playback(on){
+    if(on){
+      clearTimeout(unlockTimer);unlockTimer=null;
+      playCount++;
+      paint(true);
+      clearTimeout(watchdog);
+      watchdog=setTimeout(forceUnlock,120000);
+      return;
+    }
+    playCount=Math.max(0,playCount-1);
+    if(playCount>0)return;
+    clearTimeout(unlockTimer);
+    unlockTimer=setTimeout(()=>{if(playCount===0)forceUnlock()},650);
+  }
+  try{
+    const previousPlay=HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play=function(){
+      if(!(this instanceof HTMLAudioElement))return previousPlay.apply(this,arguments);
+      const audio=this;
+      let released=false;
+      playback(true);
+      const release=()=>{if(released)return;released=true;playback(false)};
+      audio.addEventListener('ended',release,{once:true});
+      audio.addEventListener('error',release,{once:true});
+      audio.addEventListener('abort',release,{once:true});
+      audio.addEventListener('pause',()=>{if(audio.ended||audio.currentTime===0)release()},{once:true});
+      try{
+        const result=previousPlay.apply(audio,arguments);
+        if(result&&typeof result.catch==='function')result.catch(release);
+        return result;
+      }catch(err){release();throw err}
+    };
+  }catch(_){ }
+  window.addEventListener('pagehide',forceUnlock,{once:true});
+})();
+</script>
+<!-- QUIZWEB_CU_QUIZ_PLAYBACK_LOCK_END -->
+<!-- QUIZWEB_CW_QUIZ_NEURAL_BRIDGE_START -->
+<style id="quizweb-cw-quiz-neural-bridge-style">
+#view-quiz #readQuestionAllBtn.quizweb-cw-speech-playing,
+#view-quiz .option-speak.quizweb-cw-speech-playing{
+  pointer-events:none !important;
+  opacity:.46 !important;
+}
+</style>
+<script id="quizweb-cw-quiz-neural-bridge">
+(function(){
+  'use strict';
+
+  const p=new URLSearchParams(location.search||'');
+  const isGameLock=p.get('gamelock')==='1'||!!(window.chrome&&window.chrome.webview);
+  if(!isGameLock || !window.speechSynthesis) return;
+
+  const validVoices=new Set([
+    'th-TH-PremwadeeNeural',
+    'th-TH-AcharaNeural',
+    'th-TH-NiwatNeural'
+  ]);
+
+  const nativeSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+  const nativeCancel=window.speechSynthesis.cancel.bind(window.speechSynthesis);
+
+  let queue=[];
+  let activeAudio=null;
+  let currentUtterance=null;
+  let pumping=false;
+  let canceledGeneration=0;
+
+  function quizVisible(){
+    const view=document.getElementById('view-quiz');
+    if(!view) return false;
+    if(view.hidden || view.classList.contains('hidden')) return false;
+    const style=getComputedStyle(view);
+    return style.display!=='none' && style.visibility!=='hidden';
+  }
+
+  function selectedVoice(){
+    try{
+      const ui=String(document.getElementById('speechVoice')?.value||'').trim();
+      if(validVoices.has(ui)) return ui;
+      const saved=String(localStorage.getItem('quizWebServerVoice')||'').trim();
+      if(validVoices.has(saved)) return saved;
+    }catch(_){}
+    return 'th-TH-PremwadeeNeural';
+  }
+
+  function selectedRate(){
+    let n=NaN;
+    try{
+      n=Number(document.getElementById('speechRate')?.value);
+      if(!Number.isFinite(n)) n=Number(localStorage.getItem('quizWebSpeechRate'));
+    }catch(_){}
+    if(!Number.isFinite(n)) n=.80;
+    return Math.max(.75,Math.min(1.05,n));
+  }
+
+  function setBusy(on){
+    document.querySelectorAll('#view-quiz #readQuestionAllBtn,#view-quiz .option-speak').forEach(el=>{
+      el.classList.toggle('quizweb-cw-speech-playing',!!on);
+      el.setAttribute('aria-busy',on?'true':'false');
+    });
+  }
+
+  function setStatus(text){
+    const el=document.getElementById('speechStatus');
+    if(el) el.textContent=text;
+  }
+
+  function streamUrl(text){
+    const u=new URL('/api/tts/stream',location.origin);
+    u.searchParams.set('voice',selectedVoice());
+    u.searchParams.set('rate',selectedRate().toFixed(2));
+    u.searchParams.set('text',String(text||''));
+    return u.toString();
+  }
+
+  function fire(utter,type){
+    try{ utter.dispatchEvent(new Event(type)); }catch(_){
+      try{
+        const fn=utter && utter['on'+type];
+        if(typeof fn==='function') fn.call(utter,{type});
+      }catch(__){}
+    }
+  }
+
+  function clearActive(){
+    try{
+      if(activeAudio){
+        activeAudio.pause();
+        activeAudio.removeAttribute('src');
+        activeAudio.load();
+      }
+    }catch(_){}
+    activeAudio=null;
+    currentUtterance=null;
+    setBusy(false);
+  }
+
+  async function pump(myGeneration){
+    if(pumping) return;
+    pumping=true;
+    try{
+      while(queue.length && myGeneration===canceledGeneration){
+        const utter=queue.shift();
+        const text=String(utter?.text||'').trim();
+        if(!text){
+          fire(utter,'end');
+          continue;
+        }
+
+        currentUtterance=utter;
+        const audio=new Audio();
+        activeAudio=audio;
+        setStatus('กำลังอ่านด้วยเสียงเดียวกับหน้าเนื้อหา…');
+
+        await new Promise((resolve)=>{
+          let done=false;
+          const finish=(ok)=>{
+            if(done) return;
+            done=true;
+            audio.onplaying=null;
+            audio.onended=null;
+            audio.onerror=null;
+            audio.onabort=null;
+            if(activeAudio===audio) activeAudio=null;
+            currentUtterance=null;
+            setBusy(false);
+            fire(utter,ok?'end':'error');
+            resolve();
+          };
+
+          audio.preload='auto';
+          audio.onplaying=()=>setBusy(true);
+          audio.onended=()=>finish(true);
+          audio.onerror=()=>finish(false);
+          audio.onabort=()=>finish(false);
+          audio.src=streamUrl(text);
+
+          try{
+            const pr=audio.play();
+            if(pr && typeof pr.catch==='function') pr.catch(()=>finish(false));
+          }catch(_){
+            finish(false);
+          }
+        });
+
+        if(myGeneration!==canceledGeneration) break;
+      }
+    } finally {
+      pumping=false;
+      if(myGeneration===canceledGeneration && queue.length){
+        pump(myGeneration);
+      }else if(!queue.length){
+        setBusy(false);
+      }
+    }
+  }
+
+  window.speechSynthesis.speak=function(utter){
+    if(!quizVisible()){
+      return nativeSpeak(utter);
+    }
+
+    // GameLock Quiz must never fall back to the Windows/WebView default Thai voice.
+    queue.push(utter);
+    pump(canceledGeneration);
+  };
+
+  window.speechSynthesis.cancel=function(){
+    if(!quizVisible()){
+      return nativeCancel();
+    }
+
+    canceledGeneration++;
+    const pending=queue.splice(0);
+    pending.forEach(u=>fire(u,'end'));
+
+    if(currentUtterance) fire(currentUtterance,'end');
+    clearActive();
+
+    try{ nativeCancel(); }catch(_){}
+  };
+
+  window.addEventListener('pagehide',()=>{
+    queue=[];
+    clearActive();
+  },{once:true});
+})();
+</script>
+<!-- QUIZWEB_CW_QUIZ_NEURAL_BRIDGE_END -->
+<!-- QUIZWEB_CN_RUNTIME_START -->
+<style id="quizweb-cn-style">
+@media (min-width:0px){
+  html[data-quizweb-cn-app="1"] #bwLessonNav{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:10px !important;
+    align-items:stretch !important;
+  }
+  html[data-quizweb-cn-app="1"] #bwLessonNav > *,
+  html[data-quizweb-cn-app="1"] #bwLessonNav button,
+  html[data-quizweb-cn-app="1"] #bwLessonNav a{
+    width:100% !important;
+    min-width:0 !important;
+    min-height:56px !important;
+    height:100% !important;
+    margin:0 !important;
+  }
+  html[data-quizweb-cn-app="1"] #view-lessons .section-heading.split.has-global-home{
+    align-items:stretch !important;
+  }
+  html[data-quizweb-cn-app="1"] #view-lessons .section-heading.split.has-global-home button,
+  html[data-quizweb-cn-app="1"] #view-lessons .section-heading.split.has-global-home a{
+    min-height:56px !important;
+  }
+}
+</style>
+<script id="quizweb-cn-runtime">
+(function(){
+'use strict';
+const isApp=!!(window.chrome&&window.chrome.webview);
+if(!isApp)return;
+document.documentElement.dataset.quizwebCnApp='1';
+const prevFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  const r=await prevFetch(input,init);
+  try{
+    const url=typeof input==='string'?input:(input&&input.url)||'';
+    const method=String((init&&init.method)||((typeof input!=='string'&&input&&input.method)||'GET')).toUpperCase();
+    if(method==='POST'&&/\/api\/quiz-result(?:\?|$)/i.test(url)&&r.ok){
+      const d=await r.clone().json();
+      if(d&&d.couponCode){
+        try{
+          localStorage.setItem('quizWebLatestCoupon',JSON.stringify({
+            code:String(d.couponCode),
+            total:Number(d.couponTotalSeconds)||0,
+            remaining:Number(d.couponRemainingSeconds)||0,
+            at:Date.now()
+          }));
+        }catch(_){}
+      }
+    }
+  }catch(_){}
+  return r;
+};
+})();
+</script>
+<!-- QUIZWEB_CN_RUNTIME_END -->
+<!-- QUIZWEB_DI_MATH_DISPLAY_START -->
+<style id="quizweb-de-math-style">
+/* DI: compact numeric fractions inside the active quiz/lesson are rendered as stacked fractions. */
+.quizweb-de-frac{
+  display:inline-grid;
+  grid-template-rows:auto auto;
+  grid-template-columns:minmax(1.55em,auto);
+  align-items:center;
+  justify-items:stretch;
+  position:relative;
+  vertical-align:-.48em;
+  margin:0 .11em;
+  line-height:1;
+  font-family:inherit;
+  font-weight:inherit;
+  font-size:.86em;
+  color:inherit;
+}
+.quizweb-de-frac::before{
+  content:attr(data-num);
+  display:block;
+  min-width:1.35em;
+  padding:0 .15em .10em;
+  border-bottom:2px solid currentColor;
+  text-align:center;
+  line-height:1.02;
+}
+.quizweb-de-frac::after{
+  content:attr(data-den);
+  display:block;
+  min-width:1.35em;
+  padding:.10em .15em 0;
+  text-align:center;
+  line-height:1.02;
+}
+.quizweb-de-blank{
+  display:inline-block;
+  width:1.12em;
+  height:.86em;
+  min-width:1.12em;
+  border:2.2px solid currentColor;
+  border-radius:.12em;
+  vertical-align:-.06em;
+  margin:0 .13em;
+  box-sizing:border-box;
+}
+.quizweb-de-raw{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+</style>
+<script id="quizweb-di-math-display">
+(function(){
+  'use strict';
+  window.quizWebMathDisplayVersion='DI';
+
+  function visible(el){
+    if(!el) return false;
+    try{
+      const cs=getComputedStyle(el);
+      return cs.display!=='none' && cs.visibility!=='hidden' && Number(cs.opacity||1)!==0 && el.getClientRects().length>0;
+    }catch(_){ return false; }
+  }
+
+  function dataSubjectTitle(){
+    try{
+      const p=new URLSearchParams(location.search||'');
+      const sid=String(p.get('subjectId')||p.get('subject')||p.get('quizSubject')||'').trim();
+      if(!sid) return '';
+      const subjects=(window.QUIZ_DATA&&Array.isArray(window.QUIZ_DATA.subjects))?window.QUIZ_DATA.subjects:[];
+      const s=subjects.find(x=>String((x&&x.id)||'')===sid);
+      return s?String(s.title||s.name||''):'';
+    }catch(_){ return ''; }
+  }
+
+  function currentVisibleText(){
+    try{
+      // innerText ignores hidden screens, which is exactly what we need here.
+      return String(document.body&&document.body.innerText||'').slice(0,7000);
+    }catch(_){ return ''; }
+  }
+
+  function isCurrentMathSubject(){
+    const t=dataSubjectTitle();
+    if(/คณิต/.test(t)) return true;
+
+    const body=currentVisibleText();
+    // The live Quiz page shows this exact style: "วิชาคณิตศาสตร์ • 30 ข้อ".
+    if(/วิชา\s*คณิตศาสตร์\s*[•·\-–—]\s*\d+\s*ข้อ/.test(body)) return true;
+
+    // Lesson and alternate layouts may omit the bullet/count but still display a visible subject heading.
+    const selectors=[
+      '#quizSubjectLabel','#lessonSubjectLabel','#subjectTitle','#quizSubjectTitle',
+      '.quiz-subject','.subject-label','.subject-title','.quiz-header','.quiz-meta',
+      '[data-current-subject]','h1','h2','h3'
+    ];
+    for(const sel of selectors){
+      for(const el of document.querySelectorAll(sel)){
+        if(visible(el) && /คณิต/.test(String(el.innerText||el.textContent||''))) return true;
+      }
+    }
+    return false;
+  }
+
+  function activeRoots(){
+    const roots=[];
+    const add=function(el){
+      if(!el || !visible(el)) return;
+      if(roots.some(r=>r===el || r.contains(el))) return;
+      roots.push(el);
+    };
+
+    const quiz=document.getElementById('view-quiz');
+    add(quiz);
+
+    const lessons=document.getElementById('view-lessons');
+    add(lessons);
+
+    // The current QuizWeb layout does not always wrap the live question in
+    // #view-quiz. optionList is the stable element used by the answer handler,
+    // so scan it directly instead of depending on a historical page wrapper.
+    const options=document.getElementById('optionList');
+    if(options && visible(options)){
+      add(options);
+
+      [
+        'questionText','quizQuestion','questionTitle','feedbackBox'
+      ].forEach(id=>add(document.getElementById(id)));
+
+      document.querySelectorAll(
+        '.question-text,.quiz-question,.quiz-question-text,.feedback'
+      ).forEach(add);
+    }
+
+    // Some QuizWeb generations render the active quiz directly inside main/card containers.
+    const read=document.getElementById('readQuestionAllBtn');
+    if(read && visible(read)){
+      add(read.closest('main,.view,.page,.container,.quiz-card,.quiz-wrap'));
+    }
+
+    return roots;
+  }
+
+  function skippedParent(p){
+    if(!p) return true;
+    return !!p.closest(
+      '.quizweb-de-frac,.quizweb-de-blank,.quizweb-de-raw,'+
+      'script,style,textarea,input,select,option,'+
+      '.option-speak,.listen-btn,#readQuestionAllBtn,#readLessonBtn,'+
+      '[contenteditable="true"]'
+    );
+  }
+
+  function hasMathToken(s){
+    return /\d{1,6}\/\d{1,6}|□/.test(String(s||''));
+  }
+
+  function transformNode(node,root){
+    if(!node || node.nodeType!==3 || !node.parentElement || !root.contains(node.parentElement)) return;
+    if(skippedParent(node.parentElement)) return;
+    const src=String(node.nodeValue||'');
+    if(!hasMathToken(src)) return;
+
+    // Do not turn UI/progress forms such as "ข้อ 4 / 30" into fractions.
+    // Only compact n/d tokens (no spaces around slash) are treated as fractions.
+    const rx=/(\d{1,6})\/(\d{1,6})|□/g;
+    const frag=document.createDocumentFragment();
+    let m,last=0,changed=false;
+
+    while((m=rx.exec(src))){
+      changed=true;
+      if(m.index>last) frag.appendChild(document.createTextNode(src.slice(last,m.index)));
+
+      if(m[0]==='□'){
+        const blank=document.createElement('span');
+        blank.className='quizweb-de-blank';
+        blank.setAttribute('aria-label','ช่องว่าง');
+        blank.title='ช่องว่าง';
+        const raw=document.createElement('span');
+        raw.className='quizweb-de-raw';
+        raw.textContent='□';
+        blank.appendChild(raw);
+        frag.appendChild(blank);
+      }else{
+        const frac=document.createElement('span');
+        frac.className='quizweb-de-frac';
+        frac.dataset.num=m[1];
+        frac.dataset.den=m[2];
+        frac.setAttribute('aria-label',m[1]+' ส่วน '+m[2]);
+        frac.title=m[1]+' ส่วน '+m[2];
+        const raw=document.createElement('span');
+        raw.className='quizweb-de-raw';
+        raw.textContent=m[0];
+        frac.appendChild(raw);
+        frag.appendChild(frac);
+      }
+      last=rx.lastIndex;
+    }
+
+    if(!changed) return;
+    if(last<src.length) frag.appendChild(document.createTextNode(src.slice(last)));
+    node.replaceWith(frag);
+  }
+
+  function apply(){
+    const roots=activeRoots();
+    if(!roots.length) return;
+
+    roots.forEach(function(root){
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+      const nodes=[];
+      let n;
+      while((n=walker.nextNode())){
+        if(n.parentElement && !skippedParent(n.parentElement) && hasMathToken(n.nodeValue)) nodes.push(n);
+      }
+      nodes.forEach(n=>transformNode(n,root));
+    });
+  }
+
+  let timer=0;
+  function queue(delay){
+    clearTimeout(timer);
+    timer=setTimeout(apply,typeof delay==='number'?delay:20);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>queue(0),{once:true});
+  else queue(0);
+
+  const startObserver=()=>{
+    if(!document.body) return;
+    new MutationObserver(()=>queue(18)).observe(document.body,{childList:true,subtree:true,characterData:true});
+  };
+  if(document.body) startObserver(); else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
+
+  document.addEventListener('click',()=>queue(15),true);
+  document.addEventListener('change',()=>queue(15),true);
+  window.addEventListener('pageshow',()=>queue(0));
+  setTimeout(()=>queue(0),150);
+  setTimeout(()=>queue(0),600);
+})();
+</script>
+<!-- QUIZWEB_DI_MATH_DISPLAY_END -->
 </body>
 </html>

@@ -397,3 +397,275 @@ footer { text-align:center; color:var(--muted); font-size:14px; padding:30px 8px
   font-size:14px;
   color:var(--muted);
 }
+/* QUIZWEB_MINIMAL_HEADER_START */
+/* Keep the header controls in the DOM for existing JS, but remove the visual header. */
+.topbar {
+    display: none !important;
+}
+
+#stopSpeechBtn {
+    display: none !important;
+}
+
+/* Pull the useful navigation/content upward after removing the large heading. */
+.app-shell {
+    padding-top: 8px !important;
+}
+/* QUIZWEB_MINIMAL_HEADER_END */
+/* QUIZWEB_ADMIN_VOICE_START */
+/* Voice configuration is admin-only. Keep hidden elements for existing app.js compatibility. */
+.tab[data-view="settings"],
+.go-settings,
+#view-settings {
+    display: none !important;
+}
+
+.audio-toolbar .muted {
+    display: none !important;
+}
+/* QUIZWEB_ADMIN_VOICE_END */
+/* QUIZWEB_HIDE_MAIN_NAV_START */
+/* Navigation stays in the DOM for existing JavaScript, but is no longer visible. */
+.tabbar {
+    display: none !important;
+}
+
+/* With the large header and tabbar gone, keep only a small comfortable top gap. */
+.app-shell {
+    padding-top: 10px !important;
+}
+
+/* Navigation buttons use text only; no extra icon spacing is needed. */
+.back-subjects,
+.back-to-subject,
+#lessonBackBtn,
+#backToQuizSelect {
+    gap: 0 !important;
+}
+/* QUIZWEB_HIDE_MAIN_NAV_END */
+/* QUIZWEB_GLOBAL_HOME_CSS_START */
+.section-heading.has-global-home {
+    position: relative;
+}
+
+.section-heading.has-global-home > div:first-child {
+    padding-right: 116px;
+}
+
+.global-home-button {
+    position: absolute;
+    top: 0;
+    right: 2px;
+    margin: 0 !important;
+    white-space: nowrap;
+}
+
+.global-page-nav {
+    position: relative;
+    min-height: 48px;
+    margin-bottom: 12px;
+}
+
+.global-page-nav .global-home-button {
+    top: 0;
+    right: 0;
+}
+
+.global-home-button[hidden],
+.global-page-nav[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 560px) {
+    .section-heading.has-global-home > div:first-child {
+        padding-right: 102px;
+    }
+
+    .global-home-button {
+        right: 0;
+    }
+}
+/* QUIZWEB_GLOBAL_HOME_CSS_END */
+/* QUIZWEB_NO_HOME_DURING_QUIZ_START */
+#view-quiz .global-home-button,
+#view-quiz > .global-page-nav {
+    display: none !important;
+}
+/* QUIZWEB_NO_HOME_DURING_QUIZ_END */
+/* QUIZWEB_HIDE_GREEN_BADGES_START */
+/* Decorative green labels are intentionally hidden to keep the learner UI clean. */
+.pill,
+.source-badge {
+    display: none !important;
+}
+/* QUIZWEB_HIDE_GREEN_BADGES_END */
+/* QUIZWEB_HOME_MINIMAL_CSS_START */
+#view-home .welcome {
+    display: none !important;
+}
+
+#view-home .subject-grid {
+    margin-top: 0 !important;
+}
+
+.home-empty-state {
+    grid-column: 1 / -1;
+    padding: 56px 18px;
+    text-align: center;
+    color: #6b8192;
+    font-size: 20px;
+    font-weight: 700;
+}
+/* QUIZWEB_HOME_MINIMAL_CSS_END */
+
+/* QUIZWEB_GAMELOCK_LAYOUT_BT_CSS_START */
+
+/* ---------- LESSON PAGE ---------- */
+html.gamelock-mode #view-lessons .section-heading.split{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-items:stretch !important;
+  gap:12px !important;
+}
+html.gamelock-mode #view-lessons .section-heading.split > div{
+  min-width:0 !important;
+  width:100% !important;
+}
+html.gamelock-mode #view-lessons .section-heading.split .back-to-subject,
+html.gamelock-mode #view-lessons .back-to-subject{
+  position:static !important;
+  float:none !important;
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 0 10px !important;
+}
+html.gamelock-mode #view-lessons #lessonTitle{
+  max-width:100% !important;
+  min-width:0 !important;
+  overflow-wrap:anywhere !important;
+}
+html.gamelock-mode #view-lessons #lessonSelect{
+  position:static !important;
+  float:none !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+}
+html.gamelock-mode #view-lessons .audio-toolbar{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-items:stretch !important;
+  gap:10px !important;
+}
+html.gamelock-mode #view-lessons .audio-toolbar > *{
+  min-width:0 !important;
+  max-width:100% !important;
+}
+html.gamelock-mode #view-lessons #readLessonBtn{
+  width:100% !important;
+  max-width:100% !important;
+}
+html.gamelock-mode #view-lessons .lesson-section-head{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-items:stretch !important;
+  gap:12px !important;
+}
+html.gamelock-mode #view-lessons .lesson-section-head > div{
+  min-width:0 !important;
+  width:100% !important;
+}
+html.gamelock-mode #view-lessons .lesson-section-head h3{
+  min-width:0 !important;
+  max-width:100% !important;
+  overflow-wrap:anywhere !important;
+}
+html.gamelock-mode #view-lessons .read-section{
+  position:static !important;
+  float:none !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+}
+html.gamelock-mode #view-lessons .lesson-bottom-actions,
+html.gamelock-mode #view-lessons .lesson-bottom-actions button{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+/* ---------- QUIZ PAGE ---------- */
+html.gamelock-mode .quiz-topline{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:12px !important;
+}
+html.gamelock-mode .quiz-topline > button,
+html.gamelock-mode .quiz-topline > .ghost,
+html.gamelock-mode .quiz-topline > .icon-btn{
+  position:static !important;
+  float:none !important;
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+}
+html.gamelock-mode #view-quiz .question-source-row{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-items:stretch !important;
+  gap:10px !important;
+}
+html.gamelock-mode #view-quiz .listen-btn,
+html.gamelock-mode #view-quiz #readQuestionAllBtn{
+  width:100% !important;
+  max-width:100% !important;
+}
+html.gamelock-mode #view-quiz .quiz-actions{
+  display:flex !important;
+  justify-content:stretch !important;
+}
+html.gamelock-mode #view-quiz .quiz-actions button{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+/* Keep cards/text from growing through controls on different DPI settings. */
+html.gamelock-mode #view-lessons *,
+html.gamelock-mode #view-quiz *{
+  min-width:0;
+}
+html.gamelock-mode #view-lessons button,
+html.gamelock-mode #view-lessons select,
+html.gamelock-mode #view-quiz button,
+html.gamelock-mode #view-quiz select{
+  box-sizing:border-box !important;
+}
+
+/* Speech stop/lock rules from the previous fixed version. */
+.speech-control-locked{
+  pointer-events:none !important;
+  opacity:.48 !important;
+  cursor:default !important;
+}
+#inlineSpeechStopBtn{
+  min-height:42px;
+  padding:8px 14px;
+  border:0;
+  border-radius:14px;
+  background:#fff0f1;
+  color:#a33f4a;
+  font:650 15px/1.2 "Sarabun",sans-serif;
+  cursor:pointer;
+  box-shadow:none;
+  white-space:nowrap;
+}
+#inlineSpeechStopBtn:hover{background:#ffe4e7}
+#inlineSpeechStopBtn:active{transform:scale(.98)}
+html.gamelock-mode #inlineSpeechStopBtn{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+/* QUIZWEB_GAMELOCK_LAYOUT_BT_CSS_END */

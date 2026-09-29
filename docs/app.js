@@ -21,7 +21,7 @@
   let score = 0;
   let mistakes = [];
   let activeQuizName = "";
-  let speechRate = 0.90;
+  let speechRate = 0.85;
   let speechSession = 0;
 
   const $ = (id) => document.getElementById(id);
@@ -151,7 +151,7 @@
       </div>`;
 
     document.querySelector('.subject-go-lessons').addEventListener('click', () => setView('lessons'));
-    document.querySelector('.subject-go-quiz').addEventListener('click', () => setView('quizSelect'));
+    document.querySelector('.subject-go-quiz').addEventListener('click', () => startQuiz());
 
     $('homeLessonGrid').innerHTML = lessons.map(l => `
       <article class="lesson-card card compact-lesson-card">
@@ -231,29 +231,43 @@
   const NEURAL_CACHE_LIMIT = 80;
 
   function isWindowsServicePage() {
-    return location.port === '770';
+    const host = String(location.hostname || '').toLowerCase();
+    const gameLockWebView = !!(window.chrome && window.chrome.webview);
+    const ua = String(navigator.userAgent || '');
+    const mobileOrTablet =
+      !gameLockWebView &&
+      (
+        /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      );
+
+    if (mobileOrTablet) return false;
+
+    return location.port === '770' ||
+      gameLockWebView ||
+      host.endsWith('.trycloudflare.com');
   }
 
   function loadSpeechPrefs() {
-    try {
-      const savedRate = Number(localStorage.getItem('quizWebSpeechRate'));
-      if (savedRate >= 0.75 && savedRate <= 1.05) speechRate = savedRate;
+    const prefs = window.QUIZ_VOICE_SETTINGS || {};
+    const configuredRate = Number(prefs.rate);
 
-      const savedVoice = localStorage.getItem('quizWebServerVoice');
-      if (SERVER_TTS_VOICES.some(v => v.id === savedVoice)) {
-        $('speechVoice').value = savedVoice;
-      }
-    } catch (_) {}
+    if (configuredRate >= 0.75 && configuredRate <= 1.05) {
+      speechRate = configuredRate;
+    }
+
+    const configuredVoice = String(prefs.voice || 'th-TH-PremwadeeNeural');
+
+    if ($('speechVoice') && SERVER_TTS_VOICES.some(v => v.id === configuredVoice)) {
+      $('speechVoice').value = configuredVoice;
+    }
 
     if ($('speechRate')) $('speechRate').value = String(speechRate);
     if ($('speechRateValue')) $('speechRateValue').textContent = `${speechRate.toFixed(2)}x`;
   }
 
   function saveSpeechPrefs() {
-    try {
-      localStorage.setItem('quizWebSpeechRate', String(speechRate));
-      localStorage.setItem('quizWebServerVoice', selectedVoice());
-    } catch (_) {}
+    // Voice settings are managed centrally from QuizWeb Content Manager.
   }
 
   async function refreshVoices() {
@@ -493,9 +507,97 @@
     }
   }
 
+  /* QUIZWEB_SPEECH_LOCK_BL_START */
+  let speechUiBusy = false;
+  let lastSpeechTrigger = null;
+  let inlineSpeechStopBtn = null;
+
+  function speechControlSelector() {
+    return '#readLessonBtn,.read-section,#readQuestionAllBtn,.option-speak,#testSpeechBtn';
+  }
+
+  function ensureInlineSpeechStopButton() {
+    if (inlineSpeechStopBtn && inlineSpeechStopBtn.isConnected) return inlineSpeechStopBtn;
+
+    inlineSpeechStopBtn = document.createElement('button');
+    inlineSpeechStopBtn.id = 'inlineSpeechStopBtn';
+    inlineSpeechStopBtn.type = 'button';
+    inlineSpeechStopBtn.textContent = '■ หยุด';
+    inlineSpeechStopBtn.hidden = true;
+    inlineSpeechStopBtn.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      stopSpeech('หยุดอ่านแล้ว');
+    });
+
+    document.body.appendChild(inlineSpeechStopBtn);
+    return inlineSpeechStopBtn;
+  }
+
+  function rememberSpeechTrigger(ev) {
+    const target = ev.target?.closest?.(speechControlSelector());
+    if (target && target.id !== 'inlineSpeechStopBtn') lastSpeechTrigger = target;
+  }
+
+  document.addEventListener('pointerdown', rememberSpeechTrigger, true);
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    rememberSpeechTrigger(ev);
+  }, true);
+
+  function setSpeechUiBusy(busy) {
+    speechUiBusy = !!busy;
+
+    document.querySelectorAll(speechControlSelector()).forEach(el => {
+      if (el.id === 'inlineSpeechStopBtn') return;
+      el.classList.toggle('speech-control-locked', speechUiBusy);
+      el.setAttribute('aria-disabled', speechUiBusy ? 'true' : 'false');
+      if ('disabled' in el) el.disabled = speechUiBusy;
+    });
+
+    const stop = ensureInlineSpeechStopButton();
+
+    if (!speechUiBusy) {
+      stop.hidden = true;
+      stop.removeAttribute('style');
+      if (stop.parentElement !== document.body) document.body.appendChild(stop);
+      lastSpeechTrigger = null;
+      return;
+    }
+
+    let anchor = lastSpeechTrigger;
+    if (!anchor || !anchor.isConnected) {
+      anchor = document.activeElement?.closest?.(speechControlSelector()) || null;
+    }
+
+    if (anchor && anchor.parentElement) {
+      stop.removeAttribute('style');
+      anchor.insertAdjacentElement('afterend', stop);
+      stop.hidden = false;
+    } else {
+      document.body.appendChild(stop);
+      stop.hidden = false;
+      stop.style.position = 'fixed';
+      stop.style.right = '22px';
+      stop.style.bottom = '22px';
+      stop.style.zIndex = '9999';
+    }
+  }
+
+  function speechRequestWithTimeout(promise, timeoutMs = 120000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('TTS timeout')), timeoutMs);
+      })
+    ]);
+  }
+  /* QUIZWEB_SPEECH_LOCK_BL_END */
+
   function stopSpeech(status = 'หยุดอ่านแล้ว') {
     speechSession++;
     cancelSpeechResources();
+    setSpeechUiBusy(false);
 
     if ($('speechStatus')) {
       $('speechStatus').textContent = status;
@@ -670,73 +772,214 @@
   }
 
   async function speakSequence(parts, pauseMs = 360) {
+    if (typeof speechUiBusy !== 'undefined' && speechUiBusy) return;
+
     speechSession++;
     const session = speechSession;
 
     cancelSpeechResources();
 
+    const setBusy =
+      typeof setSpeechUiBusy === 'function'
+        ? setSpeechUiBusy
+        : function(){};
+    setBusy(true);
+
     const segments = buildSpeechSegments(parts, pauseMs);
 
-    if (!segments.length) return;
+    if (!segments.length) {
+      setBusy(false);
+      return;
+    }
 
     const voiceId = selectedVoice();
     const rateValue = speechRate;
-    const voiceLabel = SERVER_TTS_VOICES.find(v => v.id === voiceId)?.label || voiceId;
+    const voiceLabel =
+      SERVER_TTS_VOICES.find(v => v.id === voiceId)?.label || voiceId;
 
-    if (isWindowsServicePage()) {
-      try {
-        $('speechStatus').textContent = `กำลังเตรียมเสียง ${voiceLabel}…`;
+    /*
+      CD speech pacing:
+      - Preserve real pauses between headings / bullet points / sentences.
+      - Only merge tiny continuation fragments (normally ~190 ms splits).
+      - Keep each synthesized chunk small so "Read all" starts quickly.
+      - Prefetch only one chunk ahead to avoid flooding Edge TTS.
+    */
+    const batches = [];
+    let buffer = '';
+    let lastPause = pauseMs;
 
-        // Prepare all short phrases at once. The server can synthesize several concurrently.
-        const jobs = segments.map(segment =>
-          requestNeuralAudio(segment.text, voiceId, rateValue)
-        );
+    const flush = () => {
+      const text = String(buffer || '').trim();
+      if (!text) return;
+      batches.push({
+        text,
+        pause: Math.max(0, Number(lastPause) || 0)
+      });
+      buffer = '';
+      lastPause = pauseMs;
+    };
 
-        for (let i = 0; i < segments.length; i++) {
+    for (const seg of segments) {
+      const text = String(seg?.text || '').trim();
+      if (!text) continue;
+
+      const segPause = Math.max(0, Number(seg?.pause ?? pauseMs) || 0);
+      const canMergeContinuation =
+        !!buffer &&
+        lastPause <= 240 &&
+        (buffer.length + 1 + text.length) <= 420;
+
+      if (!buffer) {
+        buffer = text;
+        lastPause = segPause;
+      } else if (canMergeContinuation) {
+        buffer += ' ' + text;
+        lastPause = segPause;
+      } else {
+        flush();
+        buffer = text;
+        lastPause = segPause;
+      }
+
+      // Never let one Edge-TTS request become a huge paragraph again.
+      if (buffer.length >= 420) flush();
+    }
+
+    flush();
+
+    const withTimeout = (promise, ms) => {
+      if (typeof speechRequestWithTimeout === 'function') {
+        return speechRequestWithTimeout(promise, ms);
+      }
+
+      let timer = null;
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('เตรียมเสียงนานเกินไป')),
+            ms
+          );
+        })
+      ]).finally(() => {
+        if (timer) clearTimeout(timer);
+      });
+    };
+
+    try {
+      if (isWindowsServicePage()) {
+        const jobs = new Map();
+
+        const prime = index => {
+          if (
+            index < 0 ||
+            index >= batches.length ||
+            jobs.has(index)
+          ) return;
+
+          jobs.set(
+            index,
+            withTimeout(
+              requestNeuralAudio(
+                batches[index].text,
+                voiceId,
+                rateValue
+              ),
+              45000
+            )
+          );
+        };
+
+        prime(0);
+
+        for (let i = 0; i < batches.length; i++) {
           if (session !== speechSession) return;
 
-          const blob = await jobs[i];
+          $('speechStatus').textContent =
+            batches.length > 1
+              ? `กำลังเตรียมเสียง ${voiceLabel} • ${i + 1}/${batches.length}…`
+              : `กำลังเตรียมเสียง ${voiceLabel}…`;
+
+          prime(i + 1);
+
+          let blob = null;
+          try {
+            blob = await jobs.get(i);
+          } catch (edgeError) {
+            if (
+              session !== speechSession ||
+              edgeError?.name === 'AbortError'
+            ) return;
+
+            console.warn('Edge Neural chunk failed; using device voice for this chunk:', edgeError);
+            $('speechStatus').textContent =
+              `เสียงออนไลน์ช้า • ใช้เสียงของอุปกรณ์ช่วงนี้`;
+
+            await speakBrowserWhole(batches[i].text, session);
+
+            if (batches[i].pause > 0 && i < batches.length - 1) {
+              const keepGoing = await wait(batches[i].pause, session);
+              if (!keepGoing) return;
+            }
+
+            continue;
+          }
 
           if (session !== speechSession) return;
 
-          $('speechStatus').textContent = `กำลังอ่านด้วย ${voiceLabel}…`;
+
+          $('speechStatus').textContent =
+            `กำลังอ่านด้วย ${voiceLabel}…`;
 
           await playBlob(blob, session);
 
-          if (segments[i].pause > 0) {
-            const keepGoing = await wait(segments[i].pause, session);
+          if (session !== speechSession) return;
 
+          if (batches[i].pause > 0 && i < batches.length - 1) {
+            const keepGoing = await wait(batches[i].pause, session);
             if (!keepGoing) return;
           }
         }
 
         if (session === speechSession) {
-          $('speechStatus').textContent = `อ่านจบแล้ว • ${voiceLabel}`;
+          $('speechStatus').textContent =
+            `อ่านจบแล้ว • ${voiceLabel}`;
         }
 
         return;
-      } catch (error) {
-        if (session !== speechSession || error?.name === 'AbortError') return;
-
-        console.warn('Edge Neural segmented TTS failed:', error);
-        $('speechStatus').textContent = `อ่านไม่สำเร็จ • ยังคงล็อก ${voiceLabel} ไว้ ไม่สลับไปเสียงอื่น`;
-        return;
       }
-    }
 
-    try {
-      const fallback = segments.map(x => x.text).join(' ');
-
+      // Browser / phone / tablet: preserve the same pauses instead of
+      // speaking the whole lesson as one continuous paragraph.
       $('speechStatus').textContent = 'กำลังใช้เสียงของอุปกรณ์';
 
-      await speakBrowserWhole(fallback, session);
+      for (let i = 0; i < batches.length; i++) {
+        if (session !== speechSession) return;
+
+        await speakBrowserWhole(batches[i].text, session);
+
+        if (batches[i].pause > 0 && i < batches.length - 1) {
+          const keepGoing = await wait(batches[i].pause, session);
+          if (!keepGoing) return;
+        }
+      }
 
       if (session === speechSession) {
-        $('speechStatus').textContent = 'อ่านจบแล้ว • เสียงของอุปกรณ์';
+        $('speechStatus').textContent =
+          'อ่านจบแล้ว • เสียงของอุปกรณ์';
       }
-    } catch (_) {
+    } catch (error) {
+      if (
+        session !== speechSession ||
+        error?.name === 'AbortError'
+      ) return;
+
+      console.warn('QuizWeb speech failed:', error);
+      $('speechStatus').textContent =
+        `อ่านไม่สำเร็จ • ${error?.message || 'กรุณาลองใหม่'}`;
+    } finally {
       if (session === speechSession) {
-        $('speechStatus').textContent = 'ไม่สามารถอ่านออกเสียงได้ในขณะนี้';
+        setBusy(false);
       }
     }
   }
@@ -846,35 +1089,8 @@
 
     return parts;
   }
-
-  function speakQuizQuestion(q) {
-    if (!q) return;
-
-    speakSequence(
-      quizSpeechParts(q, quizIndex),
-      400
-    );
-  }
-
-  function prefetchQuestionSpeech(index) {
-    const q = quizQuestions[index];
-
-    if (!q || !isWindowsServicePage()) return;
-
-    const voiceId = selectedVoice();
-    const rateValue = speechRate;
-    const segments = buildSpeechSegments(
-      quizSpeechParts(q, index),
-      400
-    );
-
-    segments.forEach(segment => {
-      requestNeuralAudio(
-        segment.text,
-        voiceId,
-        rateValue
-      ).catch(() => {});
-    });
+function prefetchQuestionSpeech(index) {
+    return;
   }
 
   function renderLessonSelect() {
@@ -970,7 +1186,24 @@
   }
 
   function renderQuestion() {
-    const q = quizQuestions[quizIndex];
+    /* QUIZWEB_CH_BUTTON_RESET_START */
+    try {
+      const chCheckBtn = $('checkAnswerBtn');
+      const chNextBtn = $('nextQuestionBtn');
+      if (chCheckBtn) {
+        chCheckBtn.disabled = false;
+        chCheckBtn.hidden = false;
+        chCheckBtn.classList.remove('hidden');
+        chCheckBtn.textContent = 'ตรวจคำตอบ';
+      }
+      if (chNextBtn) {
+        chNextBtn.disabled = false;
+        chNextBtn.hidden = true;
+        chNextBtn.classList.add('hidden');
+      }
+    } catch (_) {}
+    /* QUIZWEB_CH_BUTTON_RESET_END */
+const q = quizQuestions[quizIndex];
     if (!q) return;
     selectedIndex = null;
     answered = false;
@@ -1011,35 +1244,128 @@
         if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); say(); }
       });
     });
-
-    // Prepare current + next question as soon as the page is shown.
-    setTimeout(() => {
-      prefetchQuestionSpeech(quizIndex);
-      prefetchQuestionSpeech(quizIndex + 1);
-    }, 0);
   }
-
   function checkAnswer() {
     if (selectedIndex === null || answered) return;
-    answered = true;
+
     const q = quizQuestions[quizIndex];
+    if (!q || !Array.isArray(q.o) || selectedIndex < 0 || selectedIndex >= q.o.length) return;
+
+    answered = true;
     const options = [...document.querySelectorAll('.option')];
-    options.forEach((el, i) => {
-      el.classList.remove('selected');
-      if (i === q.a) el.classList.add('correct');
-      if (i === selectedIndex && i !== q.a) el.classList.add('wrong');
-    });
-
     const correct = selectedIndex === q.a;
-    if (correct) score++;
-    else mistakes.push({q:q.q, selected:q.o[selectedIndex], correct:q.o[q.a], explanation:q.e});
 
-    $('feedbackBox').className = `feedback${correct ? '' : ' bad'}`;
-    $('feedbackBox').innerHTML = `<strong>${correct ? 'ถูกต้อง ✓' : `ยังไม่ถูก — คำตอบคือ ${letters[q.a]}. ${esc(q.o[q.a])}`}</strong><span>${esc(q.e)}</span>`;
-    $('checkAnswerBtn').classList.add('hidden');
-    $('nextQuestionBtn').classList.remove('hidden');
-    $('nextQuestionBtn').textContent = quizIndex === quizQuestions.length - 1 ? 'ดูคะแนน' : 'ข้อต่อไป';
+    if (correct) {
+      score++;
+    } else {
+      mistakes.push({
+        q: q.q,
+        selected: q.o[selectedIndex],
+        correct: q.o[q.a],
+        explanation: q.e
+      });
+    }
+
+    const checkBtn = $('checkAnswerBtn');
+    const nextBtn = $('nextQuestionBtn');
+    const feedback = $('feedbackBox');
+
+    let reviewEach = true;
+    try {
+      const value = new URLSearchParams(location.search || '').get('reviewEach');
+      reviewEach = value !== '0';
+    } catch (_) {
+      reviewEach = true;
+    }
+
+    if (checkBtn) {
+      checkBtn.disabled = true;
+      checkBtn.hidden = true;
+      checkBtn.classList.add('hidden');
+    }
+
+    if (reviewEach) {
+      // FAIL-SAFE FIRST: make Next usable BEFORE rendering feedback.
+      if (nextBtn) {
+        nextBtn.disabled = false;
+        nextBtn.hidden = false;
+        nextBtn.classList.remove('hidden');
+        nextBtn.textContent =
+          quizIndex >= quizQuestions.length - 1 ? 'ดูคะแนน' : 'ไปข้อถัดไป';
+      }
+
+      try {
+        options.forEach((el, i) => {
+          el.classList.remove('selected');
+          if (i === q.a) el.classList.add('correct');
+          if (i === selectedIndex && i !== q.a) el.classList.add('wrong');
+        });
+
+        if (feedback) {
+          feedback.className = `feedback${correct ? '' : ' bad'}`;
+          feedback.innerHTML =
+            `<strong>${
+              correct
+                ? 'ถูกต้อง ✓'
+                : `ยังไม่ถูก — คำตอบคือ ${letters[q.a]}. ${esc(q.o[q.a])}`
+            }</strong><span>${esc(q.e || '')}</span>`;
+        }
+      } catch (_) {
+        // Next was exposed first, so a feedback error can never trap the quiz.
+      }
+      return;
+    }
+
+    // Check-at-end mode: never reveal correctness during the quiz and move on.
+    if (nextBtn) {
+      nextBtn.disabled = false;
+      nextBtn.hidden = true;
+      nextBtn.classList.add('hidden');
+    }
+
+    try {
+      options.forEach(el => {
+        el.classList.remove('selected', 'correct', 'wrong');
+      });
+      if (feedback) {
+        feedback.className = 'feedback hidden';
+        feedback.innerHTML = '';
+      }
+    } catch (_) {}
+
+    window.setTimeout(() => {
+      try {
+        nextQuestion();
+      } catch (_) {
+        // Last-resort escape hatch: if automatic navigation fails, expose Next.
+        if (nextBtn) {
+          nextBtn.disabled = false;
+          nextBtn.hidden = false;
+          nextBtn.classList.remove('hidden');
+          nextBtn.textContent =
+            quizIndex >= quizQuestions.length - 1 ? 'ดูคะแนน' : 'ไปข้อถัดไป';
+        }
+      }
+    }, 90);
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   function nextQuestion() {
     stopSpeech('พร้อมอ่าน');
@@ -1054,7 +1380,68 @@
     return `quizWebLastResult:${currentSubjectId || 'general'}`;
   }
 
+  async function issueStandaloneCoupon(result) {
+    try {
+      const response = await fetch('/api/quizweb/coupon/issue', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          score: result.score,
+          total: result.total,
+          subjectId: result.subjectId || '',
+          quizName: result.quizName || ''
+        })
+      });
+
+      if (!response.ok) throw new Error('coupon issue failed');
+
+      const data = await response.json();
+      result.couponPending = false;
+      result.couponError = '';
+      result.grantedMinutes = Number(data.grantedMinutes) || 0;
+      result.couponCode = String(data.couponCode || '');
+      result.couponTotalSeconds = Number(data.couponTotalSeconds) || 0;
+      result.couponRemainingSeconds = Number(data.couponRemainingSeconds) || 0;
+
+      localStorage.setItem(resultStorageKey(), JSON.stringify(result));
+
+      if (result.couponCode) {
+        try {
+          localStorage.setItem('quizWebLatestCoupon', JSON.stringify({
+            code: result.couponCode,
+            total: result.couponTotalSeconds,
+            remaining: result.couponRemainingSeconds,
+            subjectId: result.subjectId || '',
+            at: Date.now()
+          }));
+        } catch (_) {}
+      }
+
+      renderResults();
+    } catch (_) {
+      result.couponPending = false;
+      result.couponError = 'สร้างคูปองไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อกับ QuizWeb แล้วทำแบบทดสอบอีกครั้ง';
+      localStorage.setItem(resultStorageKey(), JSON.stringify(result));
+      renderResults();
+    }
+  }
+
   function finishQuiz() {
+    let gameLockMode = false;
+    let gameLockToken = '';
+    let androidKioskMode = false;
+
+    try {
+      const gameLockParams = new URLSearchParams(window.location.search);
+      gameLockMode = gameLockParams.get('gamelock') === '1';
+      gameLockToken = gameLockParams.get('gamelockToken') || '';
+      androidKioskMode =
+        gameLockParams.get('androidKiosk') === '1' ||
+        !!window.QuizWebAndroid;
+    } catch (_) {
+      try { androidKioskMode = !!window.QuizWebAndroid; } catch (_) {}
+    }
+
     const result = {
       subjectId: currentSubjectId,
       quizName: activeQuizName,
@@ -1064,8 +1451,79 @@
       mistakes,
       finishedAt: new Date().toISOString()
     };
+
+    const normalizedScore = result.total > 0
+      ? (Number(result.score) * 30 / Number(result.total))
+      : 0;
+
+    // Standalone QuizWeb: one passed subject = one 8-digit coupon.
+    // Windows GameLock and Android Kiosk never create coupons; score unlocks that device directly.
+    if (!gameLockMode && !androidKioskMode && normalizedScore >= 26) {
+      result.couponPending = true;
+    }
+
+    if (androidKioskMode) {
+      result.androidKiosk = true;
+      result.grantedMinutes = normalizedScore >= 29
+        ? 120
+        : normalizedScore >= 26
+          ? 60
+          : 0;
+    }
+
     localStorage.setItem(resultStorageKey(), JSON.stringify(result));
     setView('results');
+
+    /* QUIZWEB_ANDROID_KIOSK_RESULT_START */
+    if (androidKioskMode) {
+      try {
+        if (
+          window.QuizWebAndroid &&
+          typeof window.QuizWebAndroid.onQuizResult === 'function'
+        ) {
+          const granted = Number(
+            window.QuizWebAndroid.onQuizResult(
+              Number(result.score) || 0,
+              Number(result.total) || 0
+            )
+          ) || 0;
+
+          result.grantedMinutes = granted;
+          result.androidUnlockError = '';
+        } else {
+          result.androidUnlockError =
+            'ไม่พบตัวเชื่อม Android Kiosk กรุณาเปิดหน้านี้ผ่านแอป QuizWeb Tablet Kiosk';
+        }
+      } catch (_) {
+        result.androidUnlockError =
+          'Android Kiosk รับผลคะแนนไม่สำเร็จ กรุณาเปิดแอปใหม่แล้วลองอีกครั้ง';
+      }
+
+      localStorage.setItem(resultStorageKey(), JSON.stringify(result));
+      renderResults();
+      return;
+    }
+    /* QUIZWEB_ANDROID_KIOSK_RESULT_END */
+
+    /* QUIZWEB_GAMELOCK_RESULT_START */
+    if (gameLockMode && gameLockToken) {
+      fetch('http://127.0.0.1:773/api/quiz-result', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          score: result.score,
+          total: result.total,
+          token: gameLockToken
+        }),
+        keepalive: true
+      }).catch(() => {});
+      return;
+    }
+    /* QUIZWEB_GAMELOCK_RESULT_END */
+
+    if (!gameLockMode && result.couponPending) {
+      issueStandaloneCoupon(result);
+    }
   }
 
   function renderResults() {
@@ -1079,6 +1537,30 @@
     }
 
     const level = r.percent >= 80 ? 'ดีมาก' : r.percent >= 60 ? 'ทำได้ดี' : 'ลองทบทวนแล้วทำอีกครั้ง';
+    const couponSeconds = Math.max(0, Number(r.couponRemainingSeconds || r.couponTotalSeconds) || 0);
+    const couponMinutes = couponSeconds > 0 ? Math.ceil(couponSeconds / 60) : 0;
+    const couponTimeText = couponMinutes >= 120
+      ? '2 ชั่วโมง'
+      : couponMinutes >= 60
+        ? '1 ชั่วโมง'
+        : `${couponMinutes} นาที`;
+    const couponBlock = r.couponPending
+      ? `<article class="card lesson-section"><h3>กำลังสร้างคูปอง 8 หลัก…</h3><p class="muted">ผ่านเกณฑ์แล้ว ระบบกำลังออกคูปองสำหรับนำไปกรอกใน GameLock</p></article>`
+      : r.couponCode
+        ? `<article class="card lesson-section" style="text-align:center"><h3>คูปองเวลาเล่น</h3><p class="muted">1 วิชาที่ผ่านเกณฑ์ = 1 คูปอง</p><div style="font-size:clamp(30px,8vw,48px);font-weight:800;letter-spacing:.16em;margin:14px 0 8px">${esc(r.couponCode)}</div><p>ใช้เวลาได้ <strong>${esc(couponTimeText)}</strong></p><p class="muted">นำ PIN 8 หลักนี้ไปกรอกที่ปุ่มคูปองใน GameLock เวลาที่ใช้ไม่หมดจะเก็บไว้ใช้ต่อได้</p><button class="primary" id="copyCouponBtn" type="button">คัดลอกรหัสคูปอง</button></article>`
+        : r.couponError
+          ? `<article class="card lesson-section"><h3>ออกคูปองไม่สำเร็จ</h3><p class="muted">${esc(r.couponError)}</p></article>`
+          : '';
+
+    const androidGrant = Math.max(0, Number(r.grantedMinutes) || 0);
+    const androidBlock = r.androidKiosk
+      ? r.androidUnlockError
+        ? `<article class="card lesson-section"><h3>ปลดล็อก Android ไม่สำเร็จ</h3><p class="muted">${esc(r.androidUnlockError)}</p></article>`
+        : androidGrant > 0
+          ? `<article class="card lesson-section" style="text-align:center"><h3>ปลดล็อก Tablet แล้ว</h3><p>ใช้เครื่องได้ <strong>${androidGrant >= 120 ? '2 ชั่วโมง' : '1 ชั่วโมง'}</strong></p><p class="muted">Android Kiosk ใช้คะแนนปลดเวลาโดยตรง จึงไม่สร้างคูปอง</p></article>`
+          : `<article class="card lesson-section"><h3>ยังไม่ผ่านเกณฑ์ปลดล็อก</h3><p class="muted">ต้องได้อย่างน้อย 26/30 เพื่อปลดล็อก 1 ชั่วโมง และ 29/30 ขึ้นไปเพื่อปลดล็อก 2 ชั่วโมง</p></article>`
+      : '';
+
     $('resultContent').innerHTML = `
       <article class="result-card card">
         <span class="pill">${esc(r.quizName)}</span>
@@ -1087,8 +1569,21 @@
         <p class="muted">คะแนนล่าสุดของวิชานี้เก็บไว้เฉพาะในเบราว์เซอร์เครื่องนี้</p>
         <button class="primary" id="retryBtn" type="button">ทำแบบทดสอบอีกครั้ง</button>
       </article>
+      ${couponBlock}
+      ${androidBlock}
       ${r.mistakes && r.mistakes.length ? `<article class="card lesson-section"><h3>ข้อที่ควรทบทวน</h3><div class="mistake-list">${r.mistakes.map(m => `<div class="mistake-item"><p><strong>${esc(m.q)}</strong></p><small>คำตอบที่เลือก: ${esc(m.selected)} • คำตอบที่ถูก: ${esc(m.correct)}</small><p>${esc(m.explanation)}</p></div>`).join('')}</div></article>` : `<article class="card lesson-section"><h3>เยี่ยมมาก</h3><p>ตอบถูกทุกข้อในรอบนี้</p></article>`}`;
     $('retryBtn').addEventListener('click', () => setView('quizSelect'));
+    const copyCouponBtn = $('copyCouponBtn');
+    if (copyCouponBtn && r.couponCode) {
+      copyCouponBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(String(r.couponCode));
+          copyCouponBtn.textContent = 'คัดลอกแล้ว';
+        } catch (_) {
+          copyCouponBtn.textContent = String(r.couponCode);
+        }
+      });
+    }
   }
 
   tabs.forEach(t => t.addEventListener('click', () => {
@@ -1143,12 +1638,15 @@
   });
   $('backToQuizSelect').addEventListener('click', () => {
     stopSpeech('พร้อมอ่าน');
-    setView('quizSelect');
+    setView('subject');
   });
   $('checkAnswerBtn').addEventListener('click', checkAnswer);
   $('nextQuestionBtn').addEventListener('click', nextQuestion);
   $('readQuestionAllBtn').addEventListener('click', () => {
-    speakQuizQuestion(quizQuestions[quizIndex]);
+    if (speechUiBusy) return;
+    const q = quizQuestions[quizIndex];
+    if (!q) return;
+    speakQuizQuestion(q);
   });
 
   loadSpeechPrefs();
@@ -1168,4 +1666,166 @@
   renderQuizSets();
   renderResults();
   setView('home');
+
+  
+  
+  
+  /* QUIZWEB_GLOBAL_HOME_START */
+  function goQuizWebHome() {
+    try { stopSpeech('พร้อมอ่าน'); } catch (_) {}
+    try { quizQuestions = []; } catch (_) {}
+    try { quizIndex = 0; } catch (_) {}
+    try { selectedIndex = null; } catch (_) {}
+    try { answered = false; } catch (_) {}
+    try { score = 0; } catch (_) {}
+    try { mistakes = []; } catch (_) {}
+    try { activeQuizName = ''; } catch (_) {}
+    try { setView('home'); } catch (_) {}
+    requestAnimationFrame(updateGlobalHomeButtons);
+  }
+
+  function makeGlobalHomeButton() {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ghost global-home-button';
+    b.textContent = 'หน้าหลัก';
+    b.setAttribute('aria-label', 'กลับหน้าหลัก');
+    b.addEventListener('click', goQuizWebHome);
+    return b;
+  }
+
+  function installGlobalHomeButtons() {
+    const views = [...document.querySelectorAll('[id^="view-"]')];
+
+    views.forEach(view => {
+      // No Home button on the real Home page or while actively taking a quiz.
+      if (view.id === 'view-home' || view.id === 'view-quiz') {
+        view.querySelectorAll('.global-home-button').forEach(x => x.remove());
+        view.querySelectorAll('.global-page-nav').forEach(x => x.remove());
+        const oldHeading = view.querySelector('.section-heading');
+        if (oldHeading) oldHeading.classList.remove('has-global-home');
+        return;
+      }
+
+      // Subject page already has a button that goes directly home.
+      const nativeHome = view.querySelector('.back-subjects');
+      if (nativeHome) {
+        nativeHome.textContent = 'หน้าหลัก';
+        nativeHome.setAttribute('aria-label', 'กลับหน้าหลัก');
+
+        view.querySelectorAll('.global-home-button').forEach(x => x.remove());
+        view.querySelectorAll('.global-page-nav').forEach(x => x.remove());
+
+        const heading = view.querySelector('.section-heading');
+        if (heading) heading.classList.remove('has-global-home');
+        return;
+      }
+
+      let button = view.querySelector('.global-home-button');
+
+      if (!button) {
+        button = makeGlobalHomeButton();
+
+        const heading = view.querySelector('.section-heading');
+        if (heading) {
+          heading.classList.add('has-global-home');
+          heading.appendChild(button);
+        } else {
+          let nav = view.querySelector(':scope > .global-page-nav');
+          if (!nav) {
+            nav = document.createElement('div');
+            nav.className = 'global-page-nav';
+            view.insertBefore(nav, view.firstChild);
+          }
+          nav.appendChild(button);
+        }
+      }
+    });
+
+    updateGlobalHomeButtons();
+  }
+
+  function updateGlobalHomeButtons() {
+    const home = document.getElementById('view-home');
+    const onHome = !!(home && home.classList.contains('active'));
+
+    document.querySelectorAll('.global-home-button').forEach(b => {
+      b.hidden = onHome;
+    });
+
+    document.querySelectorAll('.global-page-nav').forEach(nav => {
+      nav.hidden = onHome;
+    });
+  }
+
+  installGlobalHomeButtons();
+
+  const globalHomeObserver = new MutationObserver(() => {
+    installGlobalHomeButtons();
+  });
+
+  document.querySelectorAll('[id^="view-"]').forEach(view => {
+    globalHomeObserver.observe(view, {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: true,
+      subtree: false
+    });
+  });
+  /* QUIZWEB_GLOBAL_HOME_END */
+
+
+  /* QUIZWEB_HOME_MINIMAL_START */
+  function updateHomeEmptyState() {
+    const grid = document.getElementById('subjectGrid');
+    if (!grid) return;
+
+    const realItems = [...grid.children].filter(el => !el.classList.contains('home-empty-state'));
+    let empty = grid.querySelector('.home-empty-state');
+
+    if (realItems.length === 0) {
+      if (!empty) {
+        empty = document.createElement('div');
+        empty.className = 'home-empty-state';
+        empty.textContent = 'ยังไม่มีวิชา';
+        grid.appendChild(empty);
+      }
+    } else if (empty) {
+      empty.remove();
+    }
+  }
+
+  const homeGrid = document.getElementById('subjectGrid');
+  if (homeGrid) {
+    updateHomeEmptyState();
+    const homeGridObserver = new MutationObserver(() => updateHomeEmptyState());
+    homeGridObserver.observe(homeGrid, { childList: true });
+  }
+  /* QUIZWEB_HOME_MINIMAL_END */
+
 })();
+
+/* QUIZWEB_GAMELOCK_LAYOUT_BT_START */
+(function () {
+  function applyGameLockMode() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const byQuery = params.get('gamelock') === '1';
+      const byWebView = !!(window.chrome && window.chrome.webview);
+
+      if (byQuery || byWebView) {
+        document.documentElement.classList.add('gamelock-mode');
+      }
+    } catch (_) {
+      if (window.chrome && window.chrome.webview) {
+        document.documentElement.classList.add('gamelock-mode');
+      }
+    }
+  }
+
+  applyGameLockMode();
+  document.addEventListener('DOMContentLoaded', applyGameLockMode, { once: true });
+  window.addEventListener('popstate', applyGameLockMode);
+  window.addEventListener('hashchange', applyGameLockMode);
+})();
+ /* QUIZWEB_GAMELOCK_LAYOUT_BT_END */

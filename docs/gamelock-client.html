@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="gamelock-ui-version" content="CW-1">
+<title>GameLock</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+:root{
+  --c1:hsl(335 92% 60%);
+  --c2:hsl(198 94% 58%);
+  --c3:hsl(122 84% 55%);
+  --c4:hsl(52 96% 58%);
+  --ink:#16364b;
+  --muted:#668295;
+  --glass:rgba(255,255,255,.28);
+  --glass2:rgba(255,255,255,.52);
+  --shadow:0 20px 60px rgba(18,53,75,.18);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden}
+body{
+  font-family:"Sarabun",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 14% 18%,var(--c1),transparent 42%),
+    radial-gradient(circle at 82% 20%,var(--c2),transparent 44%),
+    radial-gradient(circle at 75% 86%,var(--c3),transparent 44%),
+    radial-gradient(circle at 20% 82%,var(--c4),transparent 43%),
+    linear-gradient(135deg,var(--c1),var(--c2),var(--c3),var(--c4));
+  background-size:180% 180%;
+  animation:drift 14s ease-in-out infinite alternate;
+  transition:background 7s ease;
+}
+body:after{
+  content:"";
+  position:fixed;inset:0;
+  background:rgba(245,251,255,.18);
+  backdrop-filter:saturate(1.12);
+  pointer-events:none;
+}
+@keyframes drift{
+  from{background-position:0% 0%}
+  to{background-position:100% 100%}
+}
+.stage{position:fixed;inset:0;z-index:1}
+.icon{
+  position:absolute;
+  display:grid;place-items:center;
+  border:0;outline:0;
+  cursor:pointer;
+  color:#fff;
+  background:rgba(255,255,255,.24);
+  box-shadow:0 12px 36px rgba(18,45,67,.15),inset 0 1px 0 rgba(255,255,255,.55);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+  transition:transform .16s ease,background .16s ease;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.icon:hover{background:rgba(255,255,255,.34);transform:scale(1.035)}
+.icon:active{transform:scale(.96)}
+.power-svg{
+  width:31px;height:31px;display:block;
+  fill:none;stroke:currentColor;stroke-width:2.15;
+  stroke-linecap:round;stroke-linejoin:round;
+  pointer-events:none;
+}
+.icon.small{
+  width:clamp(54px,5.2vw,68px);
+  height:clamp(54px,5.2vw,68px);
+  border-radius:22px;
+  top:24px;
+  font:500 clamp(25px,2.25vw,31px)/1 "Segoe UI Symbol","Arial Unicode MS",sans-serif;
+}
+#power{left:24px}
+#admin{right:24px}
+#coupon{right:24px;bottom:24px;top:auto}
+#coupon[hidden]{display:none}
+.coupon-code{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin:8px 0 14px}
+.coupon-code input{min-width:0;width:100%;aspect-ratio:1/1;border:0;outline:0;border-radius:17px;text-align:center;background:#dff1fa;color:var(--ink);font:700 22px/1 "Sarabun",sans-serif;caret-color:transparent}
+.coupon-code input:focus{background:#cceafb;box-shadow:0 0 0 4px rgba(52,150,210,.11)}
+.coupon-hint{min-height:23px;text-align:center;color:var(--muted);font-size:14px;font-weight:600;margin:0 0 10px}
+#quiz{
+  width:clamp(92px,8.2vw,118px);
+  height:clamp(92px,8.2vw,118px);
+  border-radius:32px;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  font:400 clamp(40px,4vw,54px)/1 "Segoe UI Emoji","Apple Color Emoji",sans-serif;
+}
+#quiz:hover{transform:translate(-50%,-50%) scale(1.035)}
+#quiz:active{transform:translate(-50%,-50%) scale(.96)}
+#quiz:disabled{
+  opacity:.68;
+  cursor:wait;
+  transform:translate(-50%,-50%);
+}
+#quiz[hidden]{display:none}
+
+.secondary{
+  position:fixed;inset:0;
+  z-index:3;
+  display:none;place-items:center;
+  color:#fff;
+  font-size:clamp(28px,4vw,54px);
+  font-weight:700;
+  text-shadow:0 6px 24px rgba(0,0,0,.18);
+}
+body.secondary-mode .secondary{display:grid}
+body.secondary-mode .stage{display:none}
+
+.overlay{
+  position:fixed;inset:0;z-index:10;
+  display:none;
+  place-items:center;
+  padding:24px;
+  background:rgba(233,246,253,.28);
+  backdrop-filter:blur(18px) saturate(1.18);
+  -webkit-backdrop-filter:blur(18px) saturate(1.18);
+}
+.overlay.show{display:grid}
+.card{
+  width:min(560px,94vw);
+  max-height:92vh;
+  overflow:auto;
+  border:0;
+  border-radius:36px;
+  padding:30px;
+  background:rgba(244,251,255,.84);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(28px) saturate(1.18);
+  -webkit-backdrop-filter:blur(28px) saturate(1.18);
+}
+.card h1{
+  margin:0;
+  text-align:center;
+  font-size:30px;
+  line-height:1.2;
+  font-weight:700;
+}
+.sub{
+  min-height:24px;
+  margin:4px 0 18px;
+  text-align:center;
+  color:var(--muted);
+  font-size:15px;
+}
+.label{
+  margin:8px 4px 9px;
+  color:#49697d;
+  font-size:14px;
+  font-weight:600;
+}
+.pin{
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  gap:8px;
+}
+.pin input{
+  min-width:0;
+  width:100%;
+  aspect-ratio:1/1;
+  border:0;
+  outline:0;
+  border-radius:17px;
+  text-align:center;
+  background:#dff1fa;
+  color:var(--ink);
+  font:700 22px/1 "Sarabun",sans-serif;
+  caret-color:transparent;
+  box-shadow:none;
+}
+.pin input:focus{background:#cceafb;box-shadow:0 0 0 4px rgba(52,150,210,.11)}
+.quick{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:18px;
+}
+button.action,.minutes{
+  min-height:48px;
+  border:0;
+  outline:0;
+  border-radius:17px;
+  font:600 15px/1.2 "Sarabun",sans-serif;
+  color:#28516a;
+  background:#d9effa;
+}
+button.action{cursor:pointer}
+button.action:hover{filter:brightness(.98)}
+button.action:active{transform:scale(.985)}
+.custom{
+  display:grid;
+  grid-template-columns:minmax(100px,.75fr) 1.25fr;
+  gap:10px;
+}
+.minutes{
+  width:100%;
+  padding:0 14px;
+  text-align:center;
+  appearance:textfield;
+}
+.minutes::-webkit-inner-spin-button{opacity:1}
+.full{width:100%;margin-top:12px}
+.danger{background:#ffe1e6!important;color:#af4151!important}
+.cancel{background:#eaf5fa!important}
+.msg{
+  min-height:24px;
+  margin-top:12px;
+  text-align:center;
+  font-size:14px;
+  color:#688296;
+}
+.msg.error{color:#bd4353}
+.confirm-card{width:min(430px,92vw);text-align:center}
+.confirm-card h2{margin:0 0 8px;font-size:25px}
+.confirm-card p{margin:0 0 22px;color:var(--muted)}
+.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+
+.theme-controls{
+  position:fixed;
+  left:50%;
+  bottom:24px;
+  transform:translateX(-50%);
+  z-index:5;
+  display:flex;
+  gap:8px;
+  padding:8px;
+  border-radius:18px;
+  background:rgba(255,255,255,.18);
+  box-shadow:0 10px 30px rgba(18,45,67,.12);
+  backdrop-filter:blur(16px) saturate(1.25);
+  -webkit-backdrop-filter:blur(16px) saturate(1.25);
+}
+.theme-controls button{
+  min-width:66px;
+  height:38px;
+  border:0;
+  border-radius:13px;
+  background:rgba(255,255,255,.24);
+  color:#fff;
+  font:700 12px/1 "Sarabun","Segoe UI",sans-serif;
+  cursor:pointer;
+}
+.theme-controls button.active{
+  background:rgba(255,255,255,.92);
+  color:#244c65;
+}
+body.theme-light{
+  background:#edf6fb !important;
+  color:#17374c;
+}
+body.theme-light:after{
+  background:rgba(255,255,255,.30);
+}
+body.theme-light .icon{
+  color:#244c65;
+  background:rgba(255,255,255,.62);
+}
+body.theme-light .theme-controls{
+  background:rgba(215,235,246,.72);
+}
+body.theme-light .theme-controls button{
+  color:#345c75;
+  background:rgba(255,255,255,.72);
+}
+body.theme-light .theme-controls button.active{
+  background:#fff;
+  color:#183b52;
+}
+body.theme-dark{
+  background:#0b1220 !important;
+  color:#edf6ff;
+}
+body.theme-dark:after{
+  background:rgba(4,9,18,.14);
+}
+body.theme-dark .icon{
+  color:#eef7ff;
+  background:rgba(31,45,63,.66);
+}
+body.theme-dark .theme-controls{
+  background:rgba(21,31,46,.78);
+}
+body.theme-dark .theme-controls button{
+  color:#dcecff;
+  background:rgba(52,68,90,.68);
+}
+body.theme-dark .theme-controls button.active{
+  background:#e9f4ff;
+  color:#13263a;
+}
+body.secondary-mode .theme-controls{display:none}
+
+@media(max-width:600px){
+  .card{padding:24px 18px;border-radius:30px}
+  .quick{grid-template-columns:1fr 1fr}
+  .pin{gap:6px}
+  .pin input{border-radius:14px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <button id="power" class="icon small" title="ปิดเครื่อง" aria-label="ปิดเครื่อง">
+    <svg class="power-svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2.8v8.1"></path>
+      <path d="M7.1 5.8a8 8 0 1 0 9.8 0"></path>
+    </svg>
+  </button>
+  <button id="quiz" class="icon" title="ทำแบบทดสอบ" aria-label="ทำแบบทดสอบ" hidden>📖</button>
+  <button id="coupon" class="icon small" title="กรอกคูปอง" aria-label="กรอกคูปอง" hidden>🎟</button>
+  <button id="admin" class="icon small" title="ผู้ดูแล" aria-label="ผู้ดูแล">⚙</button>
+</div>
+
+<div class="theme-controls" id="themeControls" aria-label="โหมดสีพื้นหลัง">
+  <button type="button" data-theme="light">LIGHT</button>
+  <button type="button" data-theme="dark">DARK</button>
+  <button type="button" data-theme="rgb">RGB</button>
+</div>
+
+<div class="secondary"></div>
+
+<div id="adminOverlay" class="overlay">
+  <section class="card">
+    <h1>ผู้ดูแล</h1>
+    <div id="adminSub" class="sub">&nbsp;</div>
+
+    <div class="label">รหัส PIN</div>
+    <div id="pin" class="pin"></div>
+
+    <div class="quick">
+      <button class="action quickMin" data-min="5">5 นาที</button>
+      <button class="action quickMin" data-min="10">10 นาที</button>
+      <button class="action quickMin" data-min="60">1 ชั่วโมง</button>
+      <button class="action quickMin" data-min="120">2 ชั่วโมง</button>
+    </div>
+
+    <div class="label" style="margin-top:18px">กำหนดเวลาเอง (นาที)</div>
+    <div class="custom">
+      <input id="minutes" class="minutes" type="number" min="1" max="1440" value="30" inputmode="numeric">
+      <button id="customUnlock" class="action">ปลดตามเวลานี้</button>
+    </div>
+
+    <button id="adminMode" class="action full">Admin ไม่จำกัดเวลา</button>
+    <button id="lockNow" class="action full danger">ล็อกตอนนี้</button>
+    <button id="cancelAdmin" class="action full cancel">ยกเลิก</button>
+    <div id="msg" class="msg"></div>
+  </section>
+</div>
+
+<div id="couponOverlay" class="overlay">
+  <section class="card confirm-card">
+    <h2>กรอกคูปอง</h2>
+    <div id="couponHint" class="coupon-hint"></div>
+    <div id="couponCode" class="coupon-code"></div>
+    <div class="confirm-actions">
+      <button id="cancelCoupon" class="action cancel">ยกเลิก</button>
+      <button id="redeemCoupon" class="action">ใช้งาน</button>
+    </div>
+    <div id="couponMsg" class="msg"></div>
+  </section>
+</div>
+
+<div id="shutdownOverlay" class="overlay">
+  <section class="card confirm-card">
+    <h2>ปิดเครื่องทันที?</h2>
+    <p>โปรแกรมที่ยังเปิดอยู่จะถูกปิดแบบ Force</p>
+    <div class="confirm-actions">
+      <button id="cancelShutdown" class="action cancel">ยกเลิก</button>
+      <button id="confirmShutdown" class="action danger">ปิดเครื่อง</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const qs=new URLSearchParams(location.search);
+const isSecondary=qs.get('secondary')==='1';
+if(isSecondary) document.body.classList.add('secondary-mode');
+
+const $=id=>document.getElementById(id);
+const bridge=window.chrome&&window.chrome.webview?window.chrome.webview:null;
+let state={locked:true,adminMode:false,quizEnabled:true,couponEnabled:true,latestCouponCode:'',latestCouponRemainingSeconds:0,latestCouponTotalSeconds:0,latestCouponUsedSeconds:0};
+let pinBoxes=[];
+
+function post(action,extra={}){
+  if(!bridge)return;
+  bridge.postMessage(JSON.stringify({action,...extra}));
+}
+function openAdmin(){
+  const overlay=$('adminOverlay');
+  if(!overlay)return;
+
+  // Native PollState can ask to open Admin again. If already open, do nothing:
+  // do not clear values, re-render, or steal focus from the current PIN box.
+  if(overlay.classList.contains('show'))return;
+
+  overlay.classList.add('show');
+  $('msg').textContent='';
+  setTimeout(()=>{
+    if(!overlay.classList.contains('show'))return;
+    const current=pinBoxes.find(x=>x===document.activeElement);
+    if(current)return;
+    const firstEmpty=pinBoxes.find(x=>!x.value)||pinBoxes[0];
+    firstEmpty?.focus();
+  },80);
+}
+function closeAdmin(){
+  $('adminOverlay').classList.remove('show');
+  clearPin();
+  post('closeAdmin');
+}
+function clearPin(){
+  pinBoxes.forEach(x=>x.value='');
+}
+function pinValue(){return pinBoxes.map(x=>x.value).join('')}
+let couponBoxes=[];
+function couponValue(){return couponBoxes.map(x=>x.value).join('')}
+function clearCoupon(){couponBoxes.forEach(x=>x.value='')}
+function fmtCoupon(sec){
+  sec=Math.max(0,Number(sec)||0);
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
+  if(h)return `${h} ชม. ${m} นาที`;
+  if(m)return `${m} นาที ${s} วินาที`;
+  return `${s} วินาที`;
+}
+function updateCouponHint(){
+  const el=$('couponHint');if(!el)return;
+  const code=String(state.latestCouponCode||'');
+  const rem=Number(state.latestCouponRemainingSeconds)||0;
+  el.textContent=code&&rem>0?`คูปองล่าสุด ${code} • เหลือ ${fmtCoupon(rem)}`:'กรอกคูปอง 8 หลัก หรือ Admin PIN';
+}
+function openCoupon(){
+  if(!state.couponEnabled)return;
+  clearCoupon();
+  $('couponMsg').textContent='';
+  updateCouponHint();
+  $('couponOverlay').classList.add('show');
+  setTimeout(()=>couponBoxes[0]?.focus(),80);
+}
+function closeCoupon(){
+  $('couponOverlay').classList.remove('show');
+  clearCoupon();
+}
+function redeemCoupon(){
+  const code=couponValue();
+  if(code.length<4){
+    $('couponMsg').textContent='กรอกคูปอง 8 หลัก หรือ Admin PIN';
+    $('couponMsg').classList.add('error');
+    couponBoxes[0]?.focus();
+    return;
+  }
+  $('couponMsg').classList.remove('error');
+  $('couponMsg').textContent='กำลังตรวจสอบ…';
+  post('couponRedeem',{code});
+}
+function message(text,error=false){
+  $('msg').textContent=text||'';
+  $('msg').classList.toggle('error',!!error);
+}
+function adminCommand(action,extra={}){
+  const pin=pinValue();
+  if(pin.length!==8){
+    message('กรอกรหัส PIN 8 หลัก',true);
+    pinBoxes[0]?.focus();
+    return;
+  }
+  message('กำลังทำรายการ…');
+  post(action,{pin,...extra});
+}
+function applyState(s){
+  state={...state,...s};
+  $('quiz').hidden=!state.quizEnabled;
+  $('quiz').disabled=false;
+  $('quiz').title='ทำแบบทดสอบ';
+  $('coupon').hidden=!state.couponEnabled;
+  $('adminSub').textContent=state.adminMode?'Admin ไม่จำกัดเวลา':'';
+  updateCouponHint();
+}
+function applyTheme(theme){
+  const value=['light','dark','rgb'].includes(theme)?theme:'rgb';
+  document.body.classList.remove('theme-light','theme-dark','theme-rgb');
+  document.body.classList.add('theme-'+value);
+  try{localStorage.setItem('gamelockTheme',value)}catch(_){}
+  document.querySelectorAll('#themeControls [data-theme]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.theme===value);
+  });
+}
+document.querySelectorAll('#themeControls [data-theme]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    applyTheme(b.dataset.theme);
+    if(!isSecondary)post('theme',{theme:b.dataset.theme});
+  });
+});
+let savedTheme='rgb';
+try{savedTheme=localStorage.getItem('gamelockTheme')||'rgb'}catch(_){}
+applyTheme(savedTheme);
+if(!isSecondary)post('theme',{theme:savedTheme});
+
+function randomHue(){return Math.floor(Math.random()*360)}
+function nextPalette(){
+  const base=randomHue();
+  const hues=[
+    base,
+    (base+55+Math.floor(Math.random()*65))%360,
+    (base+155+Math.floor(Math.random()*70))%360,
+    (base+250+Math.floor(Math.random()*65))%360
+  ];
+  const colors=hues.map(h=>`hsl(${h} 92% 59%)`);
+  const root=document.documentElement;
+  colors.forEach((c,i)=>root.style.setProperty('--c'+(i+1),c));
+  if(!isSecondary){
+    post('themePalette',{c1:colors[0],c2:colors[1],c3:colors[2],c4:colors[3]});
+  }
+}
+if(!isSecondary){
+  nextPalette();
+  setInterval(nextPalette,8000);
+}
+
+for(let i=0;i<8;i++){
+  const x=document.createElement('input');
+  x.type='password';
+  x.inputMode='numeric';
+  x.maxLength=1;
+  x.autocomplete='off';
+  x.setAttribute('aria-label','PIN '+(i+1));
+  x.addEventListener('input',()=>{
+    x.value=x.value.replace(/\D/g,'').slice(-1);
+    if(x.value&&i<7)pinBoxes[i+1].focus();
+  });
+  x.addEventListener('keydown',e=>{
+    if(e.key==='Backspace'&&!x.value&&i>0)pinBoxes[i-1].focus();
+    if(e.key==='ArrowLeft'&&i>0)pinBoxes[i-1].focus();
+    if(e.key==='ArrowRight'&&i<7)pinBoxes[i+1].focus();
+  });
+  x.addEventListener('paste',e=>{
+    const ds=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,8);
+    if(!ds)return;
+    e.preventDefault();
+    pinBoxes.forEach((p,j)=>p.value=ds[j]||'');
+    const next=Math.min(7,Math.max(0,ds.length-1));
+    pinBoxes[next]?.focus();
+  });
+  $('pin').appendChild(x);pinBoxes.push(x);
+}
+
+for(let i=0;i<8;i++){
+  const x=document.createElement('input');
+  x.type='password';x.inputMode='numeric';x.maxLength=1;x.autocomplete='off';
+  x.setAttribute('aria-label','Coupon '+(i+1));
+  x.addEventListener('input',()=>{
+    x.value=x.value.replace(/\D/g,'').slice(-1);
+    if(x.value&&i<7)couponBoxes[i+1].focus();
+  });
+  x.addEventListener('keydown',e=>{
+    if(e.key==='Backspace'&&!x.value&&i>0)couponBoxes[i-1].focus();
+    if(e.key==='ArrowLeft'&&i>0)couponBoxes[i-1].focus();
+    if(e.key==='ArrowRight'&&i<7)couponBoxes[i+1].focus();
+  });
+  x.addEventListener('paste',e=>{
+    const ds=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,8);
+    if(!ds)return;e.preventDefault();couponBoxes.forEach((p,j)=>p.value=ds[j]||'');
+  });
+  $('couponCode').appendChild(x);couponBoxes.push(x);
+}
+
+let quizOpening=false;
+let quizOpenRetryTimer=null;
+function setQuizOpening(on){
+  quizOpening=!!on;
+  const b=$('quiz');
+  if(!b)return;
+  if(!b.dataset.idleText)b.dataset.idleText=b.textContent||'📖';
+  b.textContent=b.dataset.idleText;
+  b.hidden=!state.quizEnabled;
+  b.disabled=false;
+  b.setAttribute('aria-busy',quizOpening?'true':'false');
+  b.title=quizOpening?'กำลังเปิดแบบทดสอบ…':'ทำแบบทดสอบ';
+}
+$('quiz').onclick=()=>{
+  if(!state.quizEnabled)return;
+  setQuizOpening(true);
+  post('quiz');
+  clearTimeout(quizOpenRetryTimer);
+  quizOpenRetryTimer=setTimeout(()=>setQuizOpening(false),4500);
+};
+$('admin').onclick=openAdmin;
+$('coupon').onclick=openCoupon;
+$('cancelCoupon').onclick=closeCoupon;
+$('redeemCoupon').onclick=redeemCoupon;
+$('power').onclick=()=>$('shutdownOverlay').classList.add('show');
+$('cancelShutdown').onclick=()=>$('shutdownOverlay').classList.remove('show');
+$('confirmShutdown').onclick=()=>post('shutdown');
+$('cancelAdmin').onclick=closeAdmin;
+document.querySelectorAll('.quickMin').forEach(b=>b.onclick=()=>adminCommand('adminUnlock',{minutes:Number(b.dataset.min)}));
+$('customUnlock').onclick=()=>{
+  const n=Math.max(1,Math.min(1440,Number($('minutes').value)||0));
+  if(!n){message('กรอกจำนวนนาที',true);return}
+  adminCommand('adminUnlock',{minutes:n});
+};
+$('adminMode').onclick=()=>adminCommand('adminMode',{enabled:true});
+$('lockNow').onclick=()=>adminCommand('adminMode',{enabled:false});
+
+if(bridge){
+  bridge.addEventListener('message',e=>{
+    const d=e.data||{};
+    if(d.type==='state')applyState(d.state||{});
+    else if(d.type==='openAdmin')openAdmin();
+    else if(d.type==='quizOpenFailed')setQuizOpening(false);
+    else if(d.type==='actionResult'){
+      if(d.action==='couponRedeem'){
+        if(d.ok){
+          $('couponMsg').classList.remove('error');
+          $('couponMsg').textContent='ใช้งานได้แล้ว';
+          setTimeout(closeCoupon,420);
+        }else{
+          $('couponMsg').classList.add('error');
+          $('couponMsg').textContent=d.message||'คูปองไม่ถูกต้องหรือหมดเวลาแล้ว';
+          clearCoupon();couponBoxes[0]?.focus();
+        }
+      }else if(d.ok){
+        message('สำเร็จ');
+        clearPin();
+        if(d.action==='adminUnlock'||d.action==='adminMode') setTimeout(()=>closeAdmin(),350);
+      }else{
+        message(d.message||'ทำรายการไม่สำเร็จ',true);
+        clearPin();
+        pinBoxes[0]?.focus();
+      }
+    }
+  });
+  post('ready');
+}
+
+// Visual-only updates can be changed on the main QuizWeb without reinstalling clients.
+setInterval(async()=>{
+  try{
+    // Never reload while an overlay/input is active. This prevents PIN boxes
+    // from blinking or losing focus during the 60-second UI version check.
+    if(document.querySelector('#adminOverlay.show,#couponOverlay.show,#shutdownOverlay.show'))return;
+    const active=document.activeElement;
+    if(active&&(active.closest?.('#adminOverlay')||active.closest?.('#couponOverlay')))return;
+
+    const r=await fetch(location.pathname+'?ui-check='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const t=await r.text();
+    const m=t.match(/name="gamelock-ui-version"\s+content="([^"]+)"/i);
+    const here=document.querySelector('meta[name="gamelock-ui-version"]')?.content||'';
+    if(m&&m[1]&&m[1]!==here) location.reload();
+  }catch(_){}
+},60000);
+</script>
+</body>
+</html>

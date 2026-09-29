@@ -1,0 +1,1 @@
+window.QUIZ_VOICE_SETTINGS = {"voice":"th-TH-PremwadeeNeural","rate":0.9};
