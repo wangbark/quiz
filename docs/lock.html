@@ -2,6 +2,9 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <title>Game Lock</title>
@@ -91,9 +94,59 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
  .pin{gap:4px}.pin input{width:38px;height:48px;border-radius:14px;font-size:20px}
  .manage-head{display:flex}.manage-right{margin-left:auto}.manage-status{text-align:right;margin-top:0}
 }
+
+/* GAMELOCK_SESSION_PIN_V2 */
+.manage > .pin-label,
+.manage > #pin{display:none!important}
+.admin-pin-overlay{
+  position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;
+  padding:22px;background:rgba(15,36,54,.34);backdrop-filter:blur(8px)
+}
+.admin-pin-overlay.show{display:flex}
+.admin-pin-card{
+  width:min(460px,calc(100vw - 32px));background:#fff;border-radius:28px;padding:24px;
+  box-shadow:0 24px 80px rgba(17,52,76,.24);border:1px solid rgba(44,96,130,.10)
+}
+.admin-pin-title{font-size:21px;font-weight:800;color:#18364a;margin-bottom:4px}
+.admin-pin-sub{font-size:13px;color:#7b92a0;margin-bottom:18px}
+.admin-pin-card .pin-label{display:block;margin:0 0 8px}
+.admin-pin-card .pin{display:flex!important}
+.admin-pin-error{min-height:20px;margin-top:10px;font-size:13px;color:#bf3c3c}
+.admin-pin-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+.admin-pin-actions button{border:0;border-radius:14px;padding:10px 16px;font-weight:700;cursor:pointer}
+.admin-pin-cancel{background:#edf4f8;color:#48697c}
+.admin-pin-submit{background:#1d6d96;color:#fff}
+
+/* GAMELOCK_SUBJECT_MASK_V3 */
+.subject-mask-section{
+  margin:2px 0 18px;padding:15px 16px 16px;border-radius:18px;
+  background:rgba(220,239,249,.78)
+}
+.subject-mask-head{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#355a70;font-size:14px;font-weight:700;margin-bottom:10px}
+.subject-mask-count{font-size:12px;color:#718b9b;font-weight:600;white-space:nowrap}
+.subject-mask-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.subject-mask-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:9px 11px;border-radius:15px;background:rgba(255,255,255,.48);color:#31566c;font-size:14px;font-weight:600}
+.subject-mask-item .subject-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subject-mask-item .switch{transform:scale(.86);transform-origin:right center}
+.subject-mask-note{font-size:12px;color:#718b9b;margin-top:9px}
+.subject-mask-section[hidden]{display:none!important}
+@media(max-width:620px){.subject-mask-list{grid-template-columns:1fr}}
+
+/* LOCK_VERSION_R26 */
+#lockVersionMark{
+  position:fixed;left:10px;bottom:8px;z-index:9999;
+  font:600 11px/1.2 "Sarabun","Segoe UI",sans-serif;
+  color:#6f8796;background:rgba(255,255,255,.56);
+  border-radius:999px;padding:5px 8px;pointer-events:none;user-select:none;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+
 </style>
+<script src="data.js?v=20260929R26"></script>
 </head>
 <body>
+<div id="lockVersionMark">Lock R26</div>
+<!-- LOCK_R26_20260929 -->
 <div class="shell">
   <div class="head">
     <div><h1>Game Lock</h1><div class="sub">เลือกเครื่องที่ต้องการจัดการ</div></div>
@@ -137,6 +190,15 @@ button.action:hover{background:rgba(199,230,246,.98)}button.action:active{transf
           <input id="quizAllToggle" type="checkbox">
           <span class="slider"></span>
         </label>
+      </div>
+
+      <div id="subjectMaskSection" class="subject-mask-section">
+        <div class="subject-mask-head">
+          <span>เปิด / ปิดรายวิชาบนเครื่องนี้</span>
+          <span id="subjectMaskCount" class="subject-mask-count"></span>
+        </div>
+        <div id="subjectMaskList" class="subject-mask-list"></div>
+        <div id="subjectMaskNote" class="subject-mask-note"></div>
       </div>
 
       <div class="pin-label">รหัส PIN</div>
@@ -238,8 +300,128 @@ function clearQuizAllPending(machineId){
 
 
 function pinValue(){return pins.map(x=>x.value).join('')}
-function clearPin(){pins.forEach(x=>x.value='');pins[0].focus()}
+let adminSessionPin='', pinOverlay=null, pinOverlayOpen=false;
+let pendingAdminExecutor=null, pendingAdminResolve=null, pendingAdminReject=null, pinSubmitBusy=false;
+
+function clearPin(focus=true){
+ pins.forEach(x=>x.value='');
+ if(focus&&pinOverlayOpen&&pins[0])setTimeout(()=>pins[0].focus(),0);
+}
 function msg(t,ok){$('msg').className='msg '+(ok?'ok':'err');$('msg').textContent=t||''}
+
+function isPinError(e){
+ const x=String(e?.message||e||'');
+ return /pin|รหัส/i.test(x);
+}
+function setPinError(t){
+ const el=$('adminPinError');
+ if(el)el.textContent=t||'';
+}
+function buildAdminPinOverlay(){
+ if($('adminPinOverlay')){pinOverlay=$('adminPinOverlay');return}
+ const label=document.querySelector('.manage > .pin-label')||document.querySelector('.pin-label');
+ const pin=document.getElementById('pin');
+ if(!label||!pin)return;
+ const overlay=document.createElement('div');
+ overlay.id='adminPinOverlay';
+ overlay.className='admin-pin-overlay';
+ overlay.setAttribute('aria-hidden','true');
+ const card=document.createElement('div');
+ card.className='admin-pin-card';
+ card.innerHTML='<div class="admin-pin-title">ยืนยันรหัส Admin</div><div class="admin-pin-sub">ใส่ PIN ครั้งเดียว แล้วระบบจะจำไว้จนกว่าจะรีเฟรชหน้า</div>';
+ card.appendChild(label);
+ card.appendChild(pin);
+ const err=document.createElement('div');
+ err.id='adminPinError';
+ err.className='admin-pin-error';
+ card.appendChild(err);
+ const actions=document.createElement('div');
+ actions.className='admin-pin-actions';
+ actions.innerHTML='<button id="adminPinCancel" class="admin-pin-cancel" type="button">ยกเลิก</button><button id="adminPinSubmit" class="admin-pin-submit" type="button">ยืนยัน</button>';
+ card.appendChild(actions);
+ overlay.appendChild(card);
+ document.body.appendChild(overlay);
+ pinOverlay=overlay;
+ $('adminPinCancel').onclick=()=>cancelAdminPin();
+ $('adminPinSubmit').onclick=()=>submitAdminPin();
+ overlay.addEventListener('click',e=>{if(e.target===overlay)cancelAdminPin()});
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&pinOverlayOpen){e.preventDefault();cancelAdminPin()}
+  else if(e.key==='Enter'&&pinOverlayOpen&&pinValue().length>=4){e.preventDefault();submitAdminPin()}
+ });
+}
+function showAdminPin(){
+ buildAdminPinOverlay();
+ if(!pinOverlay)return;
+ pinOverlayOpen=true;
+ pinOverlay.classList.add('show');
+ pinOverlay.setAttribute('aria-hidden','false');
+ setPinError('');
+ clearPin(true);
+}
+function hideAdminPin(){
+ if(!pinOverlay)return;
+ pinOverlayOpen=false;
+ pinOverlay.classList.remove('show');
+ pinOverlay.setAttribute('aria-hidden','true');
+ setPinError('');
+ clearPin(false);
+}
+function cancelAdminPin(){
+ if(!pinOverlayOpen)return;
+ const reject=pendingAdminReject;
+ pendingAdminExecutor=null;pendingAdminResolve=null;pendingAdminReject=null;
+ hideAdminPin();
+ if(reject)reject(new Error('__ADMIN_CANCELLED__'));
+}
+async function submitAdminPin(){
+ if(pinSubmitBusy||!pendingAdminExecutor)return;
+ const pin=pinValue();
+ if(pin.length<4){setPinError('กรอก PIN อย่างน้อย 4 หลัก');clearPin(true);return}
+ pinSubmitBusy=true;
+ setPinError('');
+ try{
+  const value=await pendingAdminExecutor(pin);
+  adminSessionPin=pin;
+  const resolve=pendingAdminResolve;
+  pendingAdminExecutor=null;pendingAdminResolve=null;pendingAdminReject=null;
+  hideAdminPin();
+  if(resolve)resolve({pin,value});
+ }catch(e){
+  if(isPinError(e)){
+   adminSessionPin='';
+   setPinError(e?.message||'PIN ไม่ถูกต้อง');
+   clearPin(true);
+  }else{
+   const reject=pendingAdminReject;
+   pendingAdminExecutor=null;pendingAdminResolve=null;pendingAdminReject=null;
+   hideAdminPin();
+   if(reject)reject(e);
+  }
+ }finally{pinSubmitBusy=false}
+}
+async function withAdminPin(executor){
+ if(adminSessionPin){
+  try{
+   const value=await executor(adminSessionPin);
+   return {pin:adminSessionPin,value};
+  }catch(e){
+   if(!isPinError(e))throw e;
+   adminSessionPin='';
+  }
+ }
+ return new Promise((resolve,reject)=>{
+  pendingAdminExecutor=executor;
+  pendingAdminResolve=resolve;
+  pendingAdminReject=reject;
+  showAdminPin();
+ });
+}
+function resetAdminSession(){
+ adminSessionPin='';
+ if(pinOverlayOpen)cancelAdminPin();
+}
+buildAdminPinOverlay();
 function fmt(sec){
  sec=Math.max(0,Number(sec)||0);
  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60);
@@ -255,6 +437,73 @@ function isAndroidMachine(m){
 function supportsBN(m){return !isAndroidMachine(m)&&Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260910210000}
 function supportsBU(m){return !isAndroidMachine(m)&&Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260914213000}
 function supportsBW(m){return !isAndroidMachine(m)&&Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260916184000}
+
+function supportsSubjectMask(m){
+ return !isAndroidMachine(m)&&Number(m?.versionBuild||m?.state?.versionBuild||0)>=20260922154500;
+}
+function subjectDefinitions(){
+ try{
+  return (window.QUIZ_DATA?.subjects||[])
+   .filter(x=>x&&x.id)
+   .slice()
+   .sort((a,b)=>(Number(a.order)||9999)-(Number(b.order)||9999))
+   .slice(0,30);
+ }catch(_){return []}
+}
+function fullSubjectMask(defs){
+ const n=Math.min(30,Array.isArray(defs)?defs.length:0);
+ if(n<=0)return 1073741823;
+ return n===30?1073741823:((1<<n)-1);
+}
+function machineSubjectMask(m,defs){
+ const max=fullSubjectMask(defs);
+ const raw=Number(m?.state?.subjectMask??m?.subjectMask);
+ if(!Number.isFinite(raw)||raw<1)return max;
+ return Math.floor(raw)&1073741823;
+}
+let subjectMaskBusy=false;
+function renderSubjectMask(m){
+ const section=$('subjectMaskSection'),host=$('subjectMaskList'),count=$('subjectMaskCount'),note=$('subjectMaskNote');
+ if(!section||!host||!count||!note)return;
+ if(!m||isAndroidMachine(m)){section.hidden=true;return}
+ section.hidden=false;
+ const defs=subjectDefinitions();
+ if(!defs.length){
+  host.innerHTML='';count.textContent='';note.textContent='ยังโหลดรายวิชาจาก data.js ไม่สำเร็จ';return;
+ }
+ const supported=supportsSubjectMask(m);
+ const mask=machineSubjectMask(m,defs);
+ const enabledCount=defs.reduce((n,_,i)=>n+(((mask>>>i)&1)?1:0),0);
+ count.textContent='เปิด '+enabledCount+'/'+defs.length+' วิชา';
+ note.textContent=supported?'การเลือกจะจำไว้ที่เครื่องนี้ • ต้องเปิดอย่างน้อย 1 วิชา':'รอเครื่องอัปเดตเป็นรุ่นที่รองรับการเลือกวิชา';
+ host.innerHTML='';
+ defs.forEach((subj,i)=>{
+  const row=document.createElement('label');row.className='subject-mask-item';
+  const title=document.createElement('span');title.className='subject-title';title.textContent=String(subj.title||subj.id||('วิชา '+(i+1)));
+  const sw=document.createElement('span');sw.className='switch';
+  const input=document.createElement('input');input.type='checkbox';input.checked=((mask>>>i)&1)===1;
+  input.disabled=!supported||!m.online||!m.stateReachable||subjectMaskBusy;
+  const slider=document.createElement('span');slider.className='slider';
+  input.addEventListener('change',async()=>{
+   const selected=machines.find(x=>x.machineId===selectedId);
+   if(!selected){input.checked=!input.checked;return}
+   const current=machineSubjectMask(selected,defs),bit=(1<<i);
+   const next=input.checked?(current|bit):(current&~bit);
+   if(next<1){input.checked=true;msg('ต้องเปิดอย่างน้อย 1 วิชา',false);return}
+   subjectMaskBusy=true;renderSubjectMask(selected);
+   try{
+    await withAdminPin(pin=>sendQueued(selected,'quizSubjects',{minutes:next},pin));
+    if(selected.state)selected.state.subjectMask=next;
+    selected.subjectMask=next;
+    msg('บันทึกรายวิชาแล้ว',true);
+    setTimeout(()=>loadMachines(),500);
+   }catch(e){
+    if(String(e?.message||'')!=='__ADMIN_CANCELLED__')msg(e?.message||'บันทึกรายวิชาไม่สำเร็จ',false);
+   }finally{subjectMaskBusy=false;renderSubjectMask(selected)}
+  });
+  sw.appendChild(input);sw.appendChild(slider);row.appendChild(title);row.appendChild(sw);host.appendChild(row);
+ });
+}
 function timeoutFetch(url,opt={},ms=4500){
  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),ms);
  return fetch(url,{...opt,signal:ctl.signal}).finally(()=>clearTimeout(timer));
@@ -278,6 +527,8 @@ async function probe(m){
    quizEnabled:m.quizEnabled!==false,
    hidePassedToday:m.hidePassedToday!==false,
    requireAllSubjects:!!m.requireAllSubjects,
+   reviewEachQuestion:m.reviewEachQuestion!==false,
+   subjectMask:Number.isFinite(Number(m.subjectMask))?Number(m.subjectMask):1073741823,
    version:m.version||'',
    versionBuild:Number(m.versionBuild)||0
  };
@@ -331,7 +582,7 @@ function selectMachine(id){
  }
  render();
  const m=machines.find(x=>x.machineId===id);
- if(manageOpen&&m?.online)pins[0].focus();
+
 }
 function updateManage(){
  const m=machines.find(x=>x.machineId===selectedId);
@@ -381,6 +632,8 @@ function updateManage(){
          ?'บันทึกแล้ว • กำลังรอเครื่องยืนยันสถานะ'
          :'เปิด = ทำทุกวิชาให้ครบ แล้วใช้คะแนนเฉลี่ย 26–28 = 1 ชม., 29–30 = 2 ชม.';
 
+ renderSubjectMask(m);
+
  [...$('manage').querySelectorAll('button.action')].forEach(b=>b.disabled=!m.online);
  const bn=supportsBN(m);
  $('viewScreen').disabled=android||!m.online||!bn;
@@ -423,16 +676,17 @@ async function sendQueued(m,action,body,pin){
 async function command(action,body){
  const m=machines.find(x=>x.machineId===selectedId);
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return false}
- const pin=pinValue();
- if(pin.length<4){msg('กรอกรหัส PIN อย่างน้อย 4 หลัก',false);pins[0].focus();return false}
  msg('กำลังส่งคำสั่ง…',true);
  try{
-   await sendQueued(m,action,body,pin);
-   msg('สำเร็จ',true);clearPin();
+   await withAdminPin(pin=>sendQueued(m,action,body,pin));
+   msg('สำเร็จ',true);
    await new Promise(resolve=>setTimeout(resolve,650));
    await loadMachines();
    return true;
- }catch(e){msg(e.message||'ทำรายการไม่สำเร็จ',false);clearPin();return false}
+ }catch(e){
+   if(String(e?.message||'')!=='__ADMIN_CANCELLED__')msg(e.message||'ทำรายการไม่สำเร็จ',false);
+   return false;
+ }
 }
 
 async function commitQuizAllPending(){
@@ -441,25 +695,13 @@ async function commitQuizAllPending(){
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return false}
  const pending=getQuizAllPending(m.machineId);
  if(!pending)return false;
- const pin=pinValue();
- if(pin.length<4){
-  msg('เลือกโหมดไว้แล้ว • กรอก PIN ให้ครบเพื่อยืนยัน',true);
-  updateManage();
-  return false;
- }
  quizAllCommitBusy=true;
  setQuizAllPending(m.machineId,pending.desired,'sync');
  updateManage();
  msg('กำลังบันทึกโหมดแบบทดสอบ…',true);
  try{
-  await sendQueued(m,'quizModeAll',{enabled:pending.desired},pin);
-  clearPin();
-  msg(
-    pending.desired
-      ?'เปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ'
-      :'ปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ',
-    true
-  );
+  await withAdminPin(pin=>sendQueued(m,'quizModeAll',{enabled:pending.desired},pin));
+  msg(pending.desired?'เปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ':'ปิดโหมดต้องทำทุกวิชาแล้ว • รอเครื่องยืนยันสถานะ',true);
   setQuizAllPending(m.machineId,pending.desired,'sync');
   updateManage();
   setTimeout(()=>loadMachines(),900);
@@ -467,8 +709,7 @@ async function commitQuizAllPending(){
   return true;
  }catch(e){
   setQuizAllPending(m.machineId,pending.desired,'pin');
-  msg(e.message||'บันทึกโหมดไม่สำเร็จ',false);
-  clearPin();
+  if(String(e?.message||'')!=='__ADMIN_CANCELLED__')msg(e.message||'บันทึกโหมดไม่สำเร็จ',false);
   updateManage();
   return false;
  }finally{
@@ -510,14 +751,12 @@ async function startScreenView(){
  const m=machines.find(x=>x.machineId===selectedId);
  if(!m||!m.online){msg('เครื่องนี้ออฟไลน์',false);return}
  if(!supportsBN(m)){msg('รอเครื่องอัปเดตเป็น BN ก่อน',false);return}
- const pin=pinValue();
- if(pin.length<4){msg('กรอกรหัส PIN ก่อนดูหน้าจอ',false);pins[0].focus();return}
  msg('กำลังเปิดดูหน้าจอ…',true);
  try{
-   const d=await sendQueued(m,'screen',{enabled:true},pin);
+   const auth=await withAdminPin(pin=>sendQueued(m,'screen',{enabled:true},pin));
+   const d=auth.value;
    if(!d.viewToken)throw new Error('เปิดดูหน้าจอไม่ได้');
-   screenOpen=true;screenMachineId=m.machineId;screenPin=pin;screenToken=d.viewToken;
-   pins.forEach(x=>x.value='');
+   screenOpen=true;screenMachineId=m.machineId;screenPin=auth.pin;screenToken=d.viewToken;
    $('screenTitle').textContent='หน้าจอ • '+(m.name||m.machineName||'Unknown');
    $('screenOverlay').classList.add('show');$('screenOverlay').setAttribute('aria-hidden','false');
    setScreenWaiting('กำลังขอภาพจากเครื่อง…');
@@ -525,7 +764,9 @@ async function startScreenView(){
    screenTimer=setInterval(refreshScreenFrame,1250);
    screenKeepalive=setInterval(keepScreenAlive,20000);
    refreshScreenFrame();msg('',true);
- }catch(e){msg(e.message||'เปิดดูหน้าจอไม่ได้',false)}
+ }catch(e){
+   if(String(e?.message||'')!=='__ADMIN_CANCELLED__')msg(e.message||'เปิดดูหน้าจอไม่ได้',false);
+ }
 }
 function closeScreenView(sendStop=true){
  const id=screenMachineId,pin=screenPin;
@@ -547,9 +788,8 @@ pins.forEach((el,i)=>{
  el.addEventListener('input',()=>{
   el.value=el.value.replace(/\D/g,'').slice(0,1);
   if(el.value&&i<pins.length-1)pins[i+1].focus();
-  const m=machines.find(x=>x.machineId===selectedId);
-  if(m&&pinValue().length>=4&&getQuizAllPending(m.machineId)){
-    setTimeout(()=>commitQuizAllPending(),0);
+  if(pinOverlayOpen&&pinValue().length===pins.length){
+    setTimeout(()=>submitAdminPin(),0);
   }
  });
  el.addEventListener('keydown',e=>{
@@ -559,7 +799,11 @@ pins.forEach((el,i)=>{
  });
  el.addEventListener('paste',e=>{
   const ds=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,8);
-  if(!ds)return;e.preventDefault();pins.forEach((p,j)=>p.value=ds[j]||'');pins[Math.max(0,Math.min(ds.length,8)-1)].focus();
+  if(!ds)return;
+  e.preventDefault();
+  pins.forEach((p,j)=>p.value=ds[j]||'');
+  pins[Math.max(0,Math.min(ds.length,8)-1)].focus();
+  if(pinOverlayOpen&&ds.length>=4)setTimeout(()=>submitAdminPin(),0);
  });
 });
 document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>command('unlock',{minutes:Number(b.dataset.min)}));
@@ -584,14 +828,12 @@ $('quizAllToggle').onchange=async()=>{
  const desired=$('quizAllToggle').checked;
  setQuizAllPending(m.machineId,desired,'pin');
  updateManage();
-
- if(pinValue().length<4){
-   msg('เลือกโหมดไว้แล้ว • กรอก PIN ให้ครบเพื่อยืนยัน',true);
-   pins[0].focus();
-   return;
+ const ok=await commitQuizAllPending();
+ if(!ok){
+   clearQuizAllPending(m.machineId);
+   $('quizAllToggle').checked=!desired;
+   updateManage();
  }
-
- await commitQuizAllPending();
 };
 $('adminMode').onclick=()=>command('mode',{enabled:true});
 $('lockNow').onclick=()=>command('mode',{enabled:false});
@@ -602,7 +844,7 @@ $('screenOverlay').addEventListener('click',e=>{if(e.target===$('screenOverlay')
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&screenOpen)closeScreenView()});
 window.addEventListener('beforeunload',()=>closeScreenView());
 $('collapseManage').onclick=()=>{manageOpen=false;updateManage();};
-$('refresh').onclick=()=>loadMachines();
+$('refresh').onclick=()=>{resetAdminSession();loadMachines();};
 loadMachines();
 setInterval(loadMachines,5000);
 </script>
