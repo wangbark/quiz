@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="gamelock-ui-version" content="CW-2">
+<meta name="gamelock-ui-version" content="CW-3">
 <title>GameLock</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
@@ -83,127 +83,75 @@ body:after{
 .coupon-code input{min-width:0;width:100%;aspect-ratio:1/1;border:0;outline:0;border-radius:17px;text-align:center;background:#dff1fa;color:var(--ink);font:700 22px/1 "Sarabun",sans-serif;caret-color:transparent}
 .coupon-code input:focus{background:#cceafb;box-shadow:0 0 0 4px rgba(52,150,210,.11)}
 .coupon-hint{min-height:23px;text-align:center;color:var(--muted);font-size:14px;font-weight:600;margin:0 0 10px}
-#quiz{
-  width:clamp(92px,8.2vw,118px);
-  height:clamp(92px,8.2vw,118px);
-  border-radius:32px;
-  left:50%;top:50%;
-  transform:translate(-50%,-50%);
-  font:400 clamp(40px,4vw,54px)/1 "Segoe UI Emoji","Apple Color Emoji",sans-serif;
-}
-#quiz:hover{transform:translate(-50%,-50%) scale(1.035)}
-#quiz:active{transform:translate(-50%,-50%) scale(.96)}
-#quiz:disabled{
-  opacity:.68;
-  cursor:wait;
-  transform:translate(-50%,-50%);
-}
-#quiz[hidden]{display:none}
-
 /* GAMELOCK_LAUNCH_CARDS_V1 */
+/* GAMELOCK_ICON_ONLY_BALANCE_V2 */
 .launch-grid{
   position:absolute;
   left:50%;top:50%;
   transform:translate(-50%,-50%);
-  width:min(760px,78vw);
+  width:min(620px,64vw);
   display:grid;
-  grid-template-columns:repeat(2,minmax(220px,1fr));
-  gap:18px;
+  grid-template-columns:repeat(2,minmax(190px,1fr));
+  gap:24px;
+  align-items:center;
+  justify-items:center;
 }
 .launch-card{
   position:relative!important;
   inset:auto!important;
-  width:auto!important;
-  height:auto!important;
-  min-height:154px;
+  width:100%!important;
+  height:160px!important;
+  min-height:160px!important;
   transform:none!important;
-  border-radius:30px!important;
-  padding:22px 24px;
-  display:flex!important;
-  align-items:center;
-  gap:18px;
-  text-align:left;
+  border-radius:32px!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  text-align:center!important;
   font-family:"Sarabun",sans-serif!important;
-  background:rgba(255,255,255,.34)!important;
+  background:rgba(255,255,255,.18)!important;
+  box-shadow:0 16px 42px rgba(48,82,35,.16),inset 0 1px 0 rgba(255,255,255,.38);
+  border:1px solid rgba(255,255,255,.27);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
 }
-.launch-card:hover{transform:translateY(-3px)!important}
+.launch-card:hover{
+  transform:translateY(-4px)!important;
+  background:rgba(255,255,255,.24)!important;
+}
 .launch-card:active{transform:scale(.985)!important}
 .launch-card[hidden]{display:none!important}
+.launch-card:disabled{opacity:.72;cursor:wait}
 .launch-emoji{
-  flex:0 0 auto;
-  width:72px;height:72px;
-  border-radius:22px;
-  display:grid;place-items:center;
-  font:400 38px/1 "Segoe UI Emoji","Apple Color Emoji",sans-serif;
-  background:rgba(255,255,255,.40);
-}
-.launch-copy{min-width:0}
-.launch-title{
-  display:block;
-  font-size:24px;
-  line-height:1.15;
-  font-weight:700;
-  color:#fff;
-  text-shadow:0 3px 14px rgba(18,53,75,.16);
-}
-.launch-desc{
-  display:block;
-  margin-top:7px;
-  font-size:14px;
-  line-height:1.4;
-  font-weight:500;
-  color:rgba(255,255,255,.90);
-}
-.card-visibility{
-  margin-top:18px;
-  padding:16px;
-  border-radius:20px;
-  background:rgba(217,239,250,.62);
-}
-.card-visibility-title{
-  margin:0 0 10px;
-  font-size:14px;
-  font-weight:700;
-  color:#49697d;
-}
-.card-visibility-grid{
+  width:82px;
+  height:82px;
+  border-radius:26px;
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px 12px;
+  place-items:center;
+  font:700 42px/1 "Segoe UI Emoji","Apple Color Emoji","Sarabun",sans-serif;
+  color:#fff;
+  background:rgba(255,255,255,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 9px 22px rgba(78,104,42,.13);
+  letter-spacing:0;
+  transition:transform .16s ease,opacity .16s ease;
 }
-.card-visibility-grid label{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-height:36px;
-  font-size:14px;
-  font-weight:600;
-  color:#355b72;
-  cursor:pointer;
-}
-.card-visibility-grid input{
-  width:18px;height:18px;
-  accent-color:#3297d2;
-}
-body.theme-light .launch-card{
-  background:rgba(255,255,255,.78)!important;
-}
-body.theme-light .launch-title{color:#244c65;text-shadow:none}
-body.theme-light .launch-desc{color:#5e7a8d}
+.launch-card:hover .launch-emoji{transform:scale(1.055)}
+.launch-copy{display:none!important}
+body.theme-light .launch-card{background:rgba(255,255,255,.24)!important}
 body.theme-dark .launch-card{
-  background:rgba(31,45,63,.76)!important;
+  background:rgba(26,34,40,.62)!important;
+  border-color:rgba(255,255,255,.08);
 }
-@media(max-width:760px){
-  .launch-grid{width:min(92vw,620px);gap:12px}
-  .launch-card{min-height:126px;padding:16px}
-  .launch-emoji{width:58px;height:58px;border-radius:18px;font-size:31px}
-  .launch-title{font-size:19px}
-  .launch-desc{font-size:12px}
+body.theme-dark .launch-emoji{background:rgba(255,255,255,.10)}
+@media(max-width:900px){
+  .launch-grid{width:min(620px,78vw);gap:18px}
+  .launch-card{height:146px!important;min-height:146px!important}
+  .launch-emoji{width:74px;height:74px;border-radius:23px;font-size:38px}
 }
-@media(max-width:520px){
-  .launch-grid{grid-template-columns:1fr;width:84vw;max-height:62vh;overflow:auto}
-  .launch-card{min-height:98px}
-  .card-visibility-grid{grid-template-columns:1fr}
+@media(max-width:620px){
+  .launch-grid{width:min(90vw,500px);gap:14px}
+  .launch-card{height:122px!important;min-height:122px!important;border-radius:25px!important}
+  .launch-emoji{width:62px;height:62px;border-radius:19px;font-size:32px}
 }
 
 .secondary{
@@ -424,11 +372,11 @@ body.secondary-mode .theme-controls{display:none}
       <span class="launch-copy"><span class="launch-title">แบบทดสอบ</span><span class="launch-desc">ทำแบบทดสอบตามวิชาที่กำหนด</span></span>
     </button>
     <button id="thaiVocab" class="icon launch-card" title="คำศัพท์ภาษาไทย" aria-label="คำศัพท์ภาษาไทย">
-      <span class="launch-emoji">กข</span>
+      <span class="launch-emoji">ก</span>
       <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาไทย</span><span class="launch-desc">เรียนรู้และทบทวนคำศัพท์ภาษาไทย</span></span>
     </button>
     <button id="englishVocab" class="icon launch-card" title="คำศัพท์ภาษาอังกฤษ" aria-label="คำศัพท์ภาษาอังกฤษ">
-      <span class="launch-emoji">ABC</span>
+      <span class="launch-emoji">A</span>
       <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาอังกฤษ</span><span class="launch-desc">ฝึกคำศัพท์ภาษาอังกฤษแบบสั้น ๆ</span></span>
     </button>
     <button id="games" class="icon launch-card" title="เกมส์" aria-label="เกมส์">
@@ -751,12 +699,12 @@ function setQuizOpening(on){
   quizOpening=!!on;
   const b=$('quiz');
   if(!b)return;
-  if(!b.dataset.idleText)b.dataset.idleText=b.textContent||'📖';
-  b.textContent=b.dataset.idleText;
   applyCardVisibility();
-  b.disabled=false;
+  b.disabled=quizOpening;
   b.setAttribute('aria-busy',quizOpening?'true':'false');
   b.title=quizOpening?'กำลังเปิดแบบทดสอบ…':'ทำแบบทดสอบ';
+  const icon=b.querySelector('.launch-emoji');
+  if(icon)icon.style.opacity=quizOpening?'.68':'1';
 }
 $('quiz').onclick=()=>{
   if(!state.quizEnabled)return;
