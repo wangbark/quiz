@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="gamelock-ui-version" content="CW-1">
+<meta name="gamelock-ui-version" content="CW-2">
 <title>GameLock</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
@@ -99,6 +99,112 @@ body:after{
   transform:translate(-50%,-50%);
 }
 #quiz[hidden]{display:none}
+
+/* GAMELOCK_LAUNCH_CARDS_V1 */
+.launch-grid{
+  position:absolute;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  width:min(760px,78vw);
+  display:grid;
+  grid-template-columns:repeat(2,minmax(220px,1fr));
+  gap:18px;
+}
+.launch-card{
+  position:relative!important;
+  inset:auto!important;
+  width:auto!important;
+  height:auto!important;
+  min-height:154px;
+  transform:none!important;
+  border-radius:30px!important;
+  padding:22px 24px;
+  display:flex!important;
+  align-items:center;
+  gap:18px;
+  text-align:left;
+  font-family:"Sarabun",sans-serif!important;
+  background:rgba(255,255,255,.34)!important;
+}
+.launch-card:hover{transform:translateY(-3px)!important}
+.launch-card:active{transform:scale(.985)!important}
+.launch-card[hidden]{display:none!important}
+.launch-emoji{
+  flex:0 0 auto;
+  width:72px;height:72px;
+  border-radius:22px;
+  display:grid;place-items:center;
+  font:400 38px/1 "Segoe UI Emoji","Apple Color Emoji",sans-serif;
+  background:rgba(255,255,255,.40);
+}
+.launch-copy{min-width:0}
+.launch-title{
+  display:block;
+  font-size:24px;
+  line-height:1.15;
+  font-weight:700;
+  color:#fff;
+  text-shadow:0 3px 14px rgba(18,53,75,.16);
+}
+.launch-desc{
+  display:block;
+  margin-top:7px;
+  font-size:14px;
+  line-height:1.4;
+  font-weight:500;
+  color:rgba(255,255,255,.90);
+}
+.card-visibility{
+  margin-top:18px;
+  padding:16px;
+  border-radius:20px;
+  background:rgba(217,239,250,.62);
+}
+.card-visibility-title{
+  margin:0 0 10px;
+  font-size:14px;
+  font-weight:700;
+  color:#49697d;
+}
+.card-visibility-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px 12px;
+}
+.card-visibility-grid label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+  font-size:14px;
+  font-weight:600;
+  color:#355b72;
+  cursor:pointer;
+}
+.card-visibility-grid input{
+  width:18px;height:18px;
+  accent-color:#3297d2;
+}
+body.theme-light .launch-card{
+  background:rgba(255,255,255,.78)!important;
+}
+body.theme-light .launch-title{color:#244c65;text-shadow:none}
+body.theme-light .launch-desc{color:#5e7a8d}
+body.theme-dark .launch-card{
+  background:rgba(31,45,63,.76)!important;
+}
+@media(max-width:760px){
+  .launch-grid{width:min(92vw,620px);gap:12px}
+  .launch-card{min-height:126px;padding:16px}
+  .launch-emoji{width:58px;height:58px;border-radius:18px;font-size:31px}
+  .launch-title{font-size:19px}
+  .launch-desc{font-size:12px}
+}
+@media(max-width:520px){
+  .launch-grid{grid-template-columns:1fr;width:84vw;max-height:62vh;overflow:auto}
+  .launch-card{min-height:98px}
+  .card-visibility-grid{grid-template-columns:1fr}
+}
 
 .secondary{
   position:fixed;inset:0;
@@ -312,7 +418,24 @@ body.secondary-mode .theme-controls{display:none}
       <path d="M7.1 5.8a8 8 0 1 0 9.8 0"></path>
     </svg>
   </button>
-  <button id="quiz" class="icon" title="ทำแบบทดสอบ" aria-label="ทำแบบทดสอบ" hidden>📖</button>
+  <div id="launchGrid" class="launch-grid" aria-label="เมนูการเรียนรู้">
+    <button id="quiz" class="icon launch-card" title="ทำแบบทดสอบ" aria-label="ทำแบบทดสอบ" hidden>
+      <span class="launch-emoji">📝</span>
+      <span class="launch-copy"><span class="launch-title">แบบทดสอบ</span><span class="launch-desc">ทำแบบทดสอบตามวิชาที่กำหนด</span></span>
+    </button>
+    <button id="thaiVocab" class="icon launch-card" title="คำศัพท์ภาษาไทย" aria-label="คำศัพท์ภาษาไทย">
+      <span class="launch-emoji">กข</span>
+      <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาไทย</span><span class="launch-desc">เรียนรู้และทบทวนคำศัพท์ภาษาไทย</span></span>
+    </button>
+    <button id="englishVocab" class="icon launch-card" title="คำศัพท์ภาษาอังกฤษ" aria-label="คำศัพท์ภาษาอังกฤษ">
+      <span class="launch-emoji">ABC</span>
+      <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาอังกฤษ</span><span class="launch-desc">ฝึกคำศัพท์ภาษาอังกฤษแบบสั้น ๆ</span></span>
+    </button>
+    <button id="games" class="icon launch-card" title="เกมส์" aria-label="เกมส์">
+      <span class="launch-emoji">🎮</span>
+      <span class="launch-copy"><span class="launch-title">เกมส์</span><span class="launch-desc">รวมเกมส์ฝึกทักษะและพักสมอง</span></span>
+    </button>
+  </div>
   <button id="coupon" class="icon small" title="กรอกคูปอง" aria-label="กรอกคูปอง" hidden>🎟</button>
   <button id="admin" class="icon small" title="ผู้ดูแล" aria-label="ผู้ดูแล">⚙</button>
 </div>
@@ -348,6 +471,15 @@ body.secondary-mode .theme-controls{display:none}
 
     <button id="adminMode" class="action full">Admin ไม่จำกัดเวลา</button>
     <button id="lockNow" class="action full danger">ล็อกตอนนี้</button>
+    <div class="card-visibility">
+      <div class="card-visibility-title">การ์ดที่แสดงหน้า GameLock</div>
+      <div class="card-visibility-grid">
+        <label><input id="showQuizCard" type="checkbox" checked> แบบทดสอบ</label>
+        <label><input id="showThaiCard" type="checkbox" checked> คำศัพท์ภาษาไทย</label>
+        <label><input id="showEnglishCard" type="checkbox" checked> คำศัพท์ภาษาอังกฤษ</label>
+        <label><input id="showGamesCard" type="checkbox" checked> เกมส์</label>
+      </div>
+    </div>
     <button id="cancelAdmin" class="action full cancel">ยกเลิก</button>
     <div id="msg" class="msg"></div>
   </section>
@@ -386,6 +518,50 @@ const $=id=>document.getElementById(id);
 const bridge=window.chrome&&window.chrome.webview?window.chrome.webview:null;
 let state={locked:true,adminMode:false,quizEnabled:true,couponEnabled:true,latestCouponCode:'',latestCouponRemainingSeconds:0,latestCouponTotalSeconds:0,latestCouponUsedSeconds:0};
 let pinBoxes=[];
+
+/* GAMELOCK_LAUNCH_CARDS_V1 */
+const CARD_VIS_KEY='gamelockCardVisibilityV1';
+const cardDefaults={quiz:true,thai:true,english:true,games:true};
+let cardVisibility={...cardDefaults};
+function loadCardVisibility(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(CARD_VIS_KEY)||'null');
+    if(saved&&typeof saved==='object')cardVisibility={...cardDefaults,...saved};
+  }catch(_){cardVisibility={...cardDefaults}}
+}
+function saveCardVisibility(){
+  try{localStorage.setItem(CARD_VIS_KEY,JSON.stringify(cardVisibility))}catch(_){}
+}
+function applyCardVisibility(){
+  const q=$('quiz'),th=$('thaiVocab'),en=$('englishVocab'),gm=$('games');
+  if(q)q.hidden=!(state.quizEnabled&&cardVisibility.quiz);
+  if(th)th.hidden=!cardVisibility.thai;
+  if(en)en.hidden=!cardVisibility.english;
+  if(gm)gm.hidden=!cardVisibility.games;
+  const pairs=[
+    ['showQuizCard','quiz'],['showThaiCard','thai'],
+    ['showEnglishCard','english'],['showGamesCard','games']
+  ];
+  pairs.forEach(([id,key])=>{const el=$(id);if(el)el.checked=!!cardVisibility[key]});
+}
+function bindCardVisibility(){
+  const pairs=[
+    ['showQuizCard','quiz'],['showThaiCard','thai'],
+    ['showEnglishCard','english'],['showGamesCard','games']
+  ];
+  pairs.forEach(([id,key])=>{
+    const el=$(id);if(!el)return;
+    el.addEventListener('change',()=>{
+      cardVisibility[key]=!!el.checked;
+      saveCardVisibility();
+      applyCardVisibility();
+    });
+  });
+}
+function openLearningPage(file){
+  location.href='./'+file;
+}
+loadCardVisibility();
 
 function post(action,extra={}){
   if(!bridge)return;
@@ -474,7 +650,7 @@ function adminCommand(action,extra={}){
 }
 function applyState(s){
   state={...state,...s};
-  $('quiz').hidden=!state.quizEnabled;
+  applyCardVisibility();
   $('quiz').disabled=false;
   $('quiz').title='ทำแบบทดสอบ';
   $('coupon').hidden=!state.couponEnabled;
@@ -577,7 +753,7 @@ function setQuizOpening(on){
   if(!b)return;
   if(!b.dataset.idleText)b.dataset.idleText=b.textContent||'📖';
   b.textContent=b.dataset.idleText;
-  b.hidden=!state.quizEnabled;
+  applyCardVisibility();
   b.disabled=false;
   b.setAttribute('aria-busy',quizOpening?'true':'false');
   b.title=quizOpening?'กำลังเปิดแบบทดสอบ…':'ทำแบบทดสอบ';
@@ -589,6 +765,11 @@ $('quiz').onclick=()=>{
   clearTimeout(quizOpenRetryTimer);
   quizOpenRetryTimer=setTimeout(()=>setQuizOpening(false),4500);
 };
+$('thaiVocab').onclick=()=>openLearningPage('thai-vocab.html');
+$('englishVocab').onclick=()=>openLearningPage('english-vocab.html');
+$('games').onclick=()=>openLearningPage('games.html');
+bindCardVisibility();
+applyCardVisibility();
 $('admin').onclick=openAdmin;
 $('coupon').onclick=openCoupon;
 $('cancelCoupon').onclick=closeCoupon;
