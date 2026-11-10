@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>คำศัพท์ภาษาไทย • QuizWeb</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Sarabun",sans-serif;background:#f5f9fc;color:#17374c}
+body{padding:24px}.wrap{max-width:980px;margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.back{border:0;border-radius:16px;padding:12px 16px;background:#e4f1f8;color:#28516a;font:600 14px "Sarabun";cursor:pointer}
+.hero{background:linear-gradient(135deg,#ffe5ef,#ffffff);border-radius:34px;padding:34px;box-shadow:0 18px 50px rgba(25,72,103,.10)}
+.hero-row{display:flex;align-items:center;gap:22px}.emoji{width:88px;height:88px;border-radius:28px;background:rgba(255,255,255,.72);display:grid;place-items:center;font-size:44px}
+h1{margin:0;font-size:34px}p{color:#607b8e}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.card{background:#fff;border-radius:24px;padding:22px;min-height:150px;box-shadow:0 10px 30px rgba(25,72,103,.07)}
+.card h3{margin:0 0 8px;font-size:19px}.badge{display:inline-block;margin-top:10px;border-radius:999px;padding:6px 10px;background:#eef6fa;color:#668295;font-size:12px;font-weight:700}
+@media(max-width:720px){body{padding:14px}.grid{grid-template-columns:1fr}.hero{padding:24px}.hero-row{align-items:flex-start}.emoji{width:68px;height:68px;font-size:34px}h1{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><button class="back" onclick="location.href='./gamelock-client.html'">← กลับหน้า GameLock</button><strong>QuizWeb</strong></div>
+  <section class="hero"><div class="hero-row"><div class="emoji">กข</div><div><h1>คำศัพท์ภาษาไทย</h1><p>โครงหน้าเว็บสำหรับเรียนและทบทวนคำศัพท์ภาษาไทย พร้อมต่อยอดเป็นหมวดคำศัพท์ แบบฝึก และระบบคะแนน</p></div></div></section>
+  <div class="grid">
+    <div class="card"><h3>คำศัพท์ประจำวัน</h3><p>พื้นที่สำหรับคำศัพท์ ความหมาย และตัวอย่างประโยค</p><span class="badge">เตรียมไว้แล้ว</span></div>
+    <div class="card"><h3>หมวดคำศัพท์</h3><p>แบ่งตามระดับหรือหัวข้อ เช่น โรงเรียน บ้าน ธรรมชาติ</p><span class="badge">รอใส่ข้อมูล</span></div>
+    <div class="card"><h3>แบบฝึกคำศัพท์</h3><p>เตรียมไว้สำหรับจับคู่ เติมคำ หรือเลือกคำตอบ</p><span class="badge">รอทำต่อ</span></div>
+  </div>
+</div>
+</body>
+</html>
