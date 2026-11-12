@@ -21,3 +21,10 @@ URL ของ GameLock: /gamelock-client.html
 ให้ทำการ์ดคำศัพท์ ความหมาย ตัวอย่างประโยค หมวดหมู่ และแบบฝึกได้ตามที่ผู้ใช้สั่งในแชตนี้เป็นรายขั้น
 อย่าเชื่อมคะแนนเข้า GameLock หรือเปลี่ยน flow แบบทดสอบเดิมโดยพลการ
 ผลลัพธ์แต่ละรอบ: ไฟล์ patchvocab.ps1 ฉบับเต็ม พร้อมไฟล์ที่เปลี่ยน และวิธีรัน powershell -ExecutionPolicy Bypass -File C:\QuizWeb\patchvocab.ps1
+
+## หลังบ้าน Content Manager (เพิ่มเติม)
+หลังบ้านกลางอยู่ที่ http://localhost:771/ ผ่าน QuizWebContentManagerService (แยกจาก QuizWeb port 770) ไม่ใช่ docs/lock.html
+โมดูลนี้ต้องมีส่วนจัดการคำศัพท์ไทย/อังกฤษในหลังบ้านกลาง (เพิ่ม/แก้/ลบคำศัพท์และหมวดหมู่, นำเข้า/ส่งออก, สถานะเผยแพร่) โดยคงแบบทดสอบเดิม
+ห้ามเปลี่ยน route/compile/service เดิมด้วยการเดา; ก่อนเชื่อมให้ตรวจ C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs เวอร์ชันใช้งานจริง และสำรอง
+การพัฒนาในแชตนี้จำกัดการจัดการฝั่งโมดูล vocab เท่านั้น; เมนูรวม/สิทธิ์/การเปิด route ที่ port 771 ให้แชต GameLock หลักรับผิดชอบ
+คำศัพท์ไทยและอังกฤษอยู่ในโมดูล vocab เดียวกัน
