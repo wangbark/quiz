@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="quizweb-module" content="เกม">
+<title>เกม · QuizWeb</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap');
+:root{color-scheme:light;--ink:#20384d;--muted:#6a8397;--line:#dfeaf2;--sky:#eaf6fc}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Sarabun,"Segoe UI",sans-serif;color:var(--ink)}
+body{background:radial-gradient(circle at 8% 18%,#fde6f0,transparent 40%),radial-gradient(circle at 88% 25%,#dbf1ff,transparent 40%),#f6fafc}
+.wrap{max-width:1060px;margin:auto;padding:26px 20px 68px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.back{border:0;background:white;box-shadow:0 6px 20px #6387a01c;border-radius:14px;padding:12px 18px;color:var(--ink);font:700 15px Sarabun;cursor:pointer;text-decoration:none}
+.eyebrow{font-size:12px;letter-spacing:.10em;color:#7990a1;font-weight:800;text-transform:uppercase}
+.hero{margin-top:26px;background:rgba(255,255,255,.84);padding:34px;border-radius:30px;box-shadow:0 14px 44px #5d829a17;display:flex;gap:24px;align-items:center}
+.heroIcon{flex-shrink:0;width:100px;height:100px;display:grid;place-items:center;border-radius:30px;font-size:50px;background:linear-gradient(145deg,#f5faff,#e5f5fb)}
+h1{margin:4px 0 8px;font-size:clamp(26px,4vw,39px);line-height:1.16}
+p{margin:0;color:var(--muted);line-height:1.8}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.panel{padding:24px;border-radius:24px;background:#fff;box-shadow:0 8px 25px #54758a12;border:1px solid #fff}
+.panel h2{font-size:20px;margin:0 0 8px}.tag{display:inline-block;margin-top:18px;border-radius:999px;background:var(--sky);padding:7px 12px;font-size:12px;font-weight:700;color:#58788d}
+.tabs{display:flex;gap:10px;margin-top:20px}.tabs button{border:0;border-radius:14px;padding:12px 19px;background:white;color:#51768b;font:700 15px Sarabun;cursor:pointer}
+.tabs button.active{background:#d7effb;color:#174967}.hidden{display:none!important}.notice{margin-top:20px;color:#6b8698;font-size:14px}
+@media(max-width:620px){.wrap{padding:14px 13px 40px}.hero{padding:20px;gap:12px}.heroIcon{width:70px;height:70px;border-radius:20px;font-size:35px}.grid{grid-template-columns:1fr}.panel{padding:20px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="top"><a class="back" href="../gamelock-client.html">← กลับหน้า GameLock</a><span class="eyebrow">QuizWeb · Learning Hub</span></header>
+<section class="hero"><div class="heroIcon">🎮</div><div><div class="eyebrow">โมดูลการเรียนรู้</div><h1>เกม</h1><p>ศูนย์รวมเกมฝึกทักษะที่จะเพิ่มแยกเป็นเกม ๆ ได้ภายหลัง</p></div></section>
+<section class="grid"><article class="panel"><h2>เกมฝึกความจำ</h2><p>พื้นที่สำหรับเกมจับคู่หรือฝึกสังเกต</p><span class="tag">รอเพิ่มเกม</span></article><article class="panel"><h2>เกมฝึกคำศัพท์</h2><p>พื้นที่สำหรับเกมภาษาไทยและภาษาอังกฤษ</p><span class="tag">รอเพิ่มเกม</span></article><article class="panel"><h2>เกมฝึกคิด</h2><p>พื้นที่สำหรับเกมตรรกะและแก้ปัญหา</p><span class="tag">รอเพิ่มเกม</span></article><article class="panel"><h2>เกมอื่น ๆ</h2><p>พื้นที่สำหรับเพิ่มเกมใหม่ตามต้องการ</p><span class="tag">รอเพิ่มเกม</span></article></section>
+<p class="notice">หน้านี้เป็นโครงเริ่มต้นสำหรับพัฒนาในแชตแยก ยังไม่เชื่อมระบบคะแนน คูปอง หรือการปลดล็อกของ GameLock</p>
+</main>
+</body>
+</html>
