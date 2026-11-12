@@ -34,3 +34,9 @@ URL ของ GameLock: /gamelock-client.html
 - POST same-origin ต้องมี header `X-QuizWeb-Admin: 1`; records มี `id,title,prompt,category,enabled`
 - ข้อมูลเก็บแยกใน `C:\ProgramData\QuizWeb\ContentManager\modules\diary.json`; ไม่ใช่ที่เก็บเนื้อหาบันทึกส่วนบุคคล
 - **ห้าม** ส่งบันทึกส่วนตัวไป GitHub Pages / static JSON; หากจะเก็บบันทึกจริงต้องเพิ่มระบบยืนยันตัวตนและสิทธิ์จากฝั่ง server ก่อน
+
+## เชื่อม Reward Core รุ่นกลาง (หลังติดตั้ง patchreward.ps1)
+
+ให้อ่าน `docs/reward/REWARD_CONTRACT.md` และใช้ `../reward/reward-client.js` เฉพาะเมื่อมีกิจกรรมที่วัดผลได้จริงแล้ว.
+ส่ง `module:"diary"`, `activityId`, `attemptId`, `score`, `maxScore`, `completed` แบบไม่ส่งข้อความบันทึกส่วนตัว, ชื่อเด็ก หรือข้อมูลอ่อนไหว.
+การจบบันทึกไม่ใช่หลักฐานรับเวลาโดยอัตโนมัติ; ผลอยู่สถานะ unverified และไม่มีการจ่ายเวลา/คูปอง. อย่าแก้ GameLock Service/QuizWeb Service/port 771.
