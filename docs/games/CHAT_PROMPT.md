@@ -32,3 +32,9 @@ URL ของ GameLock: /gamelock-client.html
 - POST same-origin ต้องมี header `X-QuizWeb-Admin: 1`; rows มี `id,title,slug,description,order,enabled`
 - เก็บใน `C:\ProgramData\QuizWeb\ContentManager\modules\games.json`
 - เว็บเกม port 770 / GitHub Pages ยังไม่ได้อ่านข้อมูลจาก 771 อัตโนมัติ; ต้องพัฒนา pipeline เผยแพร่ config เกมที่ไม่เป็นข้อมูลส่วนตัวต่อในแชตเกม ห้ามให้ client ต่างเครื่องเรียก localhost:771
+
+## เชื่อม Reward Core รุ่นกลาง (หลังติดตั้ง patchreward.ps1)
+
+ให้อ่าน `docs/reward/REWARD_CONTRACT.md` และใช้ `../reward/reward-client.js` จากโมดูลเกมที่ถูกเสิร์ฟผ่าน QuizWeb port 770.
+สำหรับแต่ละการเล่น สร้าง UUID `attemptId` เพียงครั้งเดียว, ส่ง `module:"games"`, รหัสเกมใน `activityId`, `score`, `maxScore`, `completed` เมื่อจบ; retry ใช้ attemptId เดิม.
+ห้ามตั้งเกณฑ์ปลดเวลา/ออกคูปอง/แก้ GameLock หรือ API กลางเอง; browser score เป็น unverified จนกว่าจะแชตหลักทำวิธีตรวจผลฝั่งเซิร์ฟเวอร์.
