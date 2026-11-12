@@ -47,3 +47,11 @@ GameLock หลัก: `docs/gamelock-client.html`
 - เว็บ vocab/diary/games ส่ง `module,activityId,attemptId,score,maxScore,completed` โดยไม่ต้องแก้ GameLock
 - **Score ที่รับมาเป็น unverified เท่านั้น**; ทุกผลตอบ `grantedMinutes=0`, ไม่แจกคูปอง, ยังไม่เปลี่ยนเกณฑ์แบบทดสอบ
 - เมื่อเว็บแยกพัฒนาเสร็จ ค่อยเพิ่ม server-side verification, binding session เครื่องลูก และเกณฑ์เวลาที่แชต GameLock หลัก
+
+## Reward Core R2: เกณฑ์อยู่ที่ Admin และใช้ร่วมทั้ง 4 การ์ด
+- Reward API บน QuizWeb port 770 รองรับ quiz/vocab/diary/games; UI ตั้ง policy กลางใน Content Manager port 771
+- กำหนดเกณฑ์ตาม activityId หรือ * เป็น raw/percent, นาทีที่จะได้ และเปิด/ปิด ได้ใน Admin โดยไม่แก้หน้าเว็บ
+- หน้าเว็บแต่ละโมดูลต้องส่งผลเพียง schema กลางจาก docs/reward/REWARD_CONTRACT.md ผ่าน reward-client.js และใช้ activityId คงที่
+- **R2 ยังไม่ปลดล็อกเวลา**, `unverified`, `grantedMinutes=0`; เกณฑ์ใน Admin เป็น preview; ต้องทำ trusted bridge เข้ากับ GameLock child service หนึ่งครั้งก่อนบังคับใช้กับแบบทดสอบจริง
+- R2 patchreward.ps1 ใช้ non-single-file publish เพื่อลดปัญหา paging file / GenerateBundle
+
