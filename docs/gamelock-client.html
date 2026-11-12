@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="gamelock-ui-version" content="CW-3">
+<meta name="gamelock-ui-version" content="CW-4">
 <title>GameLock</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
@@ -367,24 +367,20 @@ body.secondary-mode .theme-controls{display:none}
     </svg>
   </button>
   <div id="launchGrid" class="launch-grid" aria-label="เมนูการเรียนรู้">
-    <button id="quiz" class="icon launch-card" title="ทำแบบทดสอบ" aria-label="ทำแบบทดสอบ" hidden>
+    <button id="quiz" class="icon launch-card" title="แบบทดสอบ" aria-label="แบบทดสอบ" hidden>
       <span class="launch-emoji">📝</span>
-      <span class="launch-copy"><span class="launch-title">แบบทดสอบ</span><span class="launch-desc">ทำแบบทดสอบตามวิชาที่กำหนด</span></span>
     </button>
-    <button id="thaiVocab" class="icon launch-card" title="คำศัพท์ภาษาไทย" aria-label="คำศัพท์ภาษาไทย">
-      <span class="launch-emoji">ก</span>
-      <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาไทย</span><span class="launch-desc">เรียนรู้และทบทวนคำศัพท์ภาษาไทย</span></span>
+    <button id="vocab" class="icon launch-card" title="คำศัพท์" aria-label="คำศัพท์">
+      <span class="launch-emoji">📚</span>
     </button>
-    <button id="englishVocab" class="icon launch-card" title="คำศัพท์ภาษาอังกฤษ" aria-label="คำศัพท์ภาษาอังกฤษ">
-      <span class="launch-emoji">A</span>
-      <span class="launch-copy"><span class="launch-title">คำศัพท์ภาษาอังกฤษ</span><span class="launch-desc">ฝึกคำศัพท์ภาษาอังกฤษแบบสั้น ๆ</span></span>
+    <button id="diary" class="icon launch-card" title="บันทึกประจำวัน" aria-label="บันทึกประจำวัน">
+      <span class="launch-emoji">📔</span>
     </button>
-    <button id="games" class="icon launch-card" title="เกมส์" aria-label="เกมส์">
+    <button id="games" class="icon launch-card" title="เกม" aria-label="เกม">
       <span class="launch-emoji">🎮</span>
-      <span class="launch-copy"><span class="launch-title">เกมส์</span><span class="launch-desc">รวมเกมส์ฝึกทักษะและพักสมอง</span></span>
     </button>
   </div>
-  <button id="coupon" class="icon small" title="กรอกคูปอง" aria-label="กรอกคูปอง" hidden>🎟</button>
+    <button id="coupon" class="icon small" title="กรอกคูปอง" aria-label="กรอกคูปอง" hidden>🎟</button>
   <button id="admin" class="icon small" title="ผู้ดูแล" aria-label="ผู้ดูแล">⚙</button>
 </div>
 
@@ -423,9 +419,9 @@ body.secondary-mode .theme-controls{display:none}
       <div class="card-visibility-title">การ์ดที่แสดงหน้า GameLock</div>
       <div class="card-visibility-grid">
         <label><input id="showQuizCard" type="checkbox" checked> แบบทดสอบ</label>
-        <label><input id="showThaiCard" type="checkbox" checked> คำศัพท์ภาษาไทย</label>
-        <label><input id="showEnglishCard" type="checkbox" checked> คำศัพท์ภาษาอังกฤษ</label>
-        <label><input id="showGamesCard" type="checkbox" checked> เกมส์</label>
+        <label><input id="showVocabCard" type="checkbox" checked> คำศัพท์</label>
+        <label><input id="showDiaryCard" type="checkbox" checked> บันทึกประจำวัน</label>
+        <label><input id="showGamesCard" type="checkbox" checked> เกม</label>
       </div>
     </div>
     <button id="cancelAdmin" class="action full cancel">ยกเลิก</button>
@@ -468,47 +464,56 @@ let state={locked:true,adminMode:false,quizEnabled:true,couponEnabled:true,lates
 let pinBoxes=[];
 
 /* GAMELOCK_LAUNCH_CARDS_V1 */
-const CARD_VIS_KEY='gamelockCardVisibilityV1';
-const cardDefaults={quiz:true,thai:true,english:true,games:true};
+/* gamelock-four-module-v1 */
+const CARD_VIS_KEY='gamelockCardVisibilityV2';
+const cardDefaults={quiz:true,vocab:true,diary:true,games:true};
 let cardVisibility={...cardDefaults};
 function loadCardVisibility(){
   try{
-    const saved=JSON.parse(localStorage.getItem(CARD_VIS_KEY)||'null');
-    if(saved&&typeof saved==='object')cardVisibility={...cardDefaults,...saved};
+    let saved=JSON.parse(localStorage.getItem(CARD_VIS_KEY)||'null');
+    if(!saved){
+      const old=JSON.parse(localStorage.getItem('gamelockCardVisibilityV1')||'null');
+      if(old&&typeof old==='object'){
+        saved={
+          quiz:old.quiz!==false,
+          vocab:old.thai!==false||old.english!==false,
+          diary:true,
+          games:old.games!==false
+        };
+      }
+    }
+    if(saved&&typeof saved==='object'){
+      cardVisibility={...cardDefaults,...saved};
+      Object.keys(cardDefaults).forEach(k=>cardVisibility[k]=cardVisibility[k]!==false);
+    }
   }catch(_){cardVisibility={...cardDefaults}}
 }
 function saveCardVisibility(){
   try{localStorage.setItem(CARD_VIS_KEY,JSON.stringify(cardVisibility))}catch(_){}
 }
 function applyCardVisibility(){
-  const q=$('quiz'),th=$('thaiVocab'),en=$('englishVocab'),gm=$('games');
+  const q=$('quiz'),v=$('vocab'),d=$('diary'),g=$('games');
   if(q)q.hidden=!(state.quizEnabled&&cardVisibility.quiz);
-  if(th)th.hidden=!cardVisibility.thai;
-  if(en)en.hidden=!cardVisibility.english;
-  if(gm)gm.hidden=!cardVisibility.games;
-  const pairs=[
-    ['showQuizCard','quiz'],['showThaiCard','thai'],
-    ['showEnglishCard','english'],['showGamesCard','games']
-  ];
-  pairs.forEach(([id,key])=>{const el=$(id);if(el)el.checked=!!cardVisibility[key]});
+  if(v)v.hidden=!cardVisibility.vocab;
+  if(d)d.hidden=!cardVisibility.diary;
+  if(g)g.hidden=!cardVisibility.games;
+  [['showQuizCard','quiz'],['showVocabCard','vocab'],
+   ['showDiaryCard','diary'],['showGamesCard','games']]
+   .forEach(([id,key])=>{const el=$(id);if(el)el.checked=!!cardVisibility[key]});
 }
 function bindCardVisibility(){
-  const pairs=[
-    ['showQuizCard','quiz'],['showThaiCard','thai'],
-    ['showEnglishCard','english'],['showGamesCard','games']
-  ];
-  pairs.forEach(([id,key])=>{
-    const el=$(id);if(!el)return;
-    el.addEventListener('change',()=>{
-      cardVisibility[key]=!!el.checked;
-      saveCardVisibility();
-      applyCardVisibility();
-    });
-  });
+  [['showQuizCard','quiz'],['showVocabCard','vocab'],
+   ['showDiaryCard','diary'],['showGamesCard','games']]
+   .forEach(([id,key])=>{
+     const el=$(id);if(!el)return;
+     el.addEventListener('change',()=>{
+       cardVisibility[key]=!!el.checked;
+       saveCardVisibility();
+       applyCardVisibility();
+     });
+   });
 }
-function openLearningPage(file){
-  location.href='./'+file;
-}
+function openLearningPage(file){location.href='./'+file}
 loadCardVisibility();
 
 function post(action,extra={}){
@@ -713,9 +718,9 @@ $('quiz').onclick=()=>{
   clearTimeout(quizOpenRetryTimer);
   quizOpenRetryTimer=setTimeout(()=>setQuizOpening(false),4500);
 };
-$('thaiVocab').onclick=()=>openLearningPage('thai-vocab.html');
-$('englishVocab').onclick=()=>openLearningPage('english-vocab.html');
-$('games').onclick=()=>openLearningPage('games.html');
+$('vocab').onclick=()=>openLearningPage('vocab/index.html');
+$('diary').onclick=()=>openLearningPage('diary/index.html');
+$('games').onclick=()=>openLearningPage('games/index.html');
 bindCardVisibility();
 applyCardVisibility();
 $('admin').onclick=openAdmin;
