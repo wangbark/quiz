@@ -20,3 +20,9 @@ URL ของ GameLock: /gamelock-client.html
 ออกแบบหน้าเลือกเกมและต่อยอดมินิเกมตามคำสั่งผู้ใช้ทีละเกม; ให้รองรับเมาส์ คีย์บอร์ด และจอสัมผัสถ้าเหมาะสม
 อย่าแตะระบบ GameLock/แบบทดสอบ และอย่าเพิ่มเวลา/คูปองอัตโนมัติ
 ผลลัพธ์แต่ละรอบ: ไฟล์ patchgame.ps1 ฉบับเต็ม พร้อมไฟล์ที่เปลี่ยน และวิธีรัน powershell -ExecutionPolicy Bypass -File C:\QuizWeb\patchgame.ps1
+
+## หลังบ้าน Content Manager (เพิ่มเติม)
+หลังบ้านกลางอยู่ที่ http://localhost:771/ ผ่าน QuizWebContentManagerService (แยกจาก QuizWeb port 770) ไม่ใช่ docs/lock.html
+โมดูลนี้ต้องมีส่วนจัดการเกมในหลังบ้านกลาง (รายชื่อเกม, เปิด/ปิด, ลำดับการแสดง, ปรับค่าตั้งเกม, ดูสถิติเฉพาะกรณีที่ผู้ใช้สั่ง) โดยคงแบบทดสอบเดิม
+ก่อนเชื่อมต้องตรวจ source จริง C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs และสำรอง ห้ามเดา route/compile/service
+การพัฒนาในแชตนี้จำกัดการจัดการฝั่งโมดูล games เท่านั้น; เมนูรวม/สิทธิ์/การเปิด route ที่ port 771 ให้แชต GameLock หลักรับผิดชอบ
