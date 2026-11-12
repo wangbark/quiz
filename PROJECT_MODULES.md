@@ -55,3 +55,14 @@ GameLock หลัก: `docs/gamelock-client.html`
 - **R2 ยังไม่ปลดล็อกเวลา**, `unverified`, `grantedMinutes=0`; เกณฑ์ใน Admin เป็น preview; ต้องทำ trusted bridge เข้ากับ GameLock child service หนึ่งครั้งก่อนบังคับใช้กับแบบทดสอบจริง
 - R2 patchreward.ps1 ใช้ non-single-file publish เพื่อลดปัญหา paging file / GenerateBundle
 
+## การตั้งค่าแสดงการ์ดจาก Reward Admin (CW-5)
+- หน้า GameLock CW-5 ไม่มี checkbox เปิด/ปิดการ์ดในหน้าผู้ดูแลของแอปแล้ว (คง PIN และคำสั่ง Admin เดิม)
+- หลังบ้าน Content Manager port 771 > ตั้งค่า Reward (4 การ์ด) > การ์ดที่แสดงหน้า GameLock มี 4 checkbox: quiz / vocab / diary / games
+- POST /api/reward/cards บน port 771 สำหรับการแก้ไข ต้อง loopback + same-origin + X-QuizWeb-Admin:1
+- Content Manager เก็บ canonical config ใน C:\ProgramData\QuizWeb\ContentManager\modules\card-visibility.json
+- บันทึกแล้วคัดลอก JSON ไปทั้ง C:\QuizWeb\wwwroot\reward\card-visibility.json และ C:\QuizWeb\publish\wwwroot\reward\card-visibility.json
+- GameLock อ่าน /reward/card-visibility.json จาก origin เดียวกันบน port 770 พร้อม no-cache ทุก 10 วินาที, ไม่ใช้ localStorage toggle อีก
+- ติดตั้งด้วย patchcards.ps1 (แพตช์แยก ไม่คอมไพล์ QuizWeb :770) ต้องมี Reward Admin R2 อยู่ก่อน
+- ค่าเริ่มต้นเมื่อยังไม่มีไฟล์กลาง: เปิดทั้ง 4 การ์ด; กติกาแบบทดสอบเดิมยังควบคุมการใช้สิทธิ quizEnabled
+- GitHub Pages ไม่ได้รับค่าจากหลังบ้าน localhost 771 โดยตรง: การตั้งค่ากลางมีผลกับ GameLock ที่เสิร์ฟผ่าน QuizWeb :770
+- การเปิด/ปิดการ์ดเป็นคนละฟังก์ชันกับเกณฑ์คะแนน/เวลารางวัล และไม่ได้เปิดระบบ Reward auto-grant
