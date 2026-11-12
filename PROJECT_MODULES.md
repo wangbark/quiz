@@ -39,3 +39,11 @@ GameLock หลัก: `docs/gamelock-client.html`
 - จุดติดตั้ง Content Manager ที่เคยใช้งาน: C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs; ต้องตรวจ source/version จริงก่อนเปลี่ยน service
 - ห้ามถือว่า docs/lock.html เป็นหลังบ้าน port 771 และห้ามแก้โค้ด service โดยเดา
 - ห้ามเผยแพร่ข้อมูลบันทึกประจำวันหรือ API จัดการข้อมูลสู่ GitHub Pages; ยืนยันตัวตนและสิทธิ์ต้องบังคับจาก server ไม่ใช่ซ่อนเมนูเฉย ๆ
+
+## Reward Core กลาง (รับผลเท่านั้น; ยังไม่ปลดล็อกเวลา)
+- ติดตั้งบน QuizWeb Service :770 ด้วย `patchreward.ps1` (เป็นแพตช์แยกจาก patch.ps1 และ patchadmin.ps1)
+- API: `GET /api/reward/v1/contract`, `POST /api/reward/v1/results`, `GET /api/reward/v1/health`
+- Adapter กลาง: `docs/reward/reward-client.js`; ข้อตกลง: `docs/reward/REWARD_CONTRACT.md`
+- เว็บ vocab/diary/games ส่ง `module,activityId,attemptId,score,maxScore,completed` โดยไม่ต้องแก้ GameLock
+- **Score ที่รับมาเป็น unverified เท่านั้น**; ทุกผลตอบ `grantedMinutes=0`, ไม่แจกคูปอง, ยังไม่เปลี่ยนเกณฑ์แบบทดสอบ
+- เมื่อเว็บแยกพัฒนาเสร็จ ค่อยเพิ่ม server-side verification, binding session เครื่องลูก และเกณฑ์เวลาที่แชต GameLock หลัก
