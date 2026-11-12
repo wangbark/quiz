@@ -28,3 +28,14 @@ GameLock หลัก: `docs/gamelock-client.html`
 ห้ามโมดูลแก้ GameLock, QuizWeb service/API, Android, คะแนน, PIN, คูปอง, เวลา, หรือโมดูลอื่น
 ไม่ต้องย้ายโฟลเดอร์เมื่อรวมงาน — ตัว GameLock ลิงก์ตรงไปที่ `vocab/index.html`, `diary/index.html`, `games/index.html`
 หากอนาคตต้องเชื่อมคะแนน คูปอง หรือเวลาปลดล็อก ให้ทำผ่านแชต GameLock หลักเท่านั้น
+
+## หลังบ้านส่วนกลางที่ http://localhost:771/
+
+- QuizWeb port 770 = หน้าเว็บใช้งาน/เกมล็อก; QuizWebContentManagerService port 771 = หลังบ้านแบบทดสอบเดิม
+- ต้องเพิ่มเมนูส่วนกลาง 4 ส่วน: แบบทดสอบ (เดิม), คำศัพท์, บันทึกประจำวัน, เกม
+- ให้คงแบบทดสอบเดิมอย่างครบถ้วน; ไม่เปลี่ยนคะแนน/คูปอง/ปลดล็อก/Android
+- เมนูหลัก, การยืนยันตัวตน, routing และ deployment ของหลังบ้าน 771 อยู่ในความรับผิดชอบแชต QuizWeb/GameLock หลัก
+- ส่วนฟอร์มจัดการและ API/data ของแต่ละโมดูลพัฒนาในแชต vocab/diary/games ตาม CHAT_PROMPT.md ของตัวเอง
+- จุดติดตั้ง Content Manager ที่เคยใช้งาน: C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs; ต้องตรวจ source/version จริงก่อนเปลี่ยน service
+- ห้ามถือว่า docs/lock.html เป็นหลังบ้าน port 771 และห้ามแก้โค้ด service โดยเดา
+- ห้ามเผยแพร่ข้อมูลบันทึกประจำวันหรือ API จัดการข้อมูลสู่ GitHub Pages; ยืนยันตัวตนและสิทธิ์ต้องบังคับจาก server ไม่ใช่ซ่อนเมนูเฉย ๆ
