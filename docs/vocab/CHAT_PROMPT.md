@@ -34,3 +34,9 @@ URL ของ GameLock: /gamelock-client.html
 - POST route เดียวกันส่ง JSON `{version:1,items:[...]}`, ต้องมี header `X-QuizWeb-Admin: 1` และ same-origin จาก localhost:771
 - รายการมี `id,lang(th|en),word,reading,meaning,example,category,enabled`; เก็บใน `C:\ProgramData\QuizWeb\ContentManager\modules\vocab.json`
 - ฝั่งเว็บคำศัพท์ (port 770 / GitHub Pages) ยังไม่ได้เชื่อม data จาก localhost:771 โดยอัตโนมัติ ห้ามเรียก API loopback จากเครื่องผู้เรียน ต้องวางเส้นทางเผยแพร่ข้อมูลสาธารณะอย่างปลอดภัยก่อน
+
+## เชื่อม Reward Core รุ่นกลาง (หลังติดตั้ง patchreward.ps1)
+
+ให้ทำเฉพาะการส่งผลกิจกรรมคำศัพท์เข้า Reward Core v1 ของ QuizWeb port 770 โดยอ่าน `docs/reward/REWARD_CONTRACT.md` และใช้ `../reward/reward-client.js`.
+หลังแบบฝึกหัดจบ ส่ง `module:"vocab"`, `activityId`, `attemptId` UUID เดียวตลอดรอบ, `score`, `maxScore`, `completed` ผ่าน `QuizWebReward.submitResult(...)`.
+ห้ามตั้งเกณฑ์ชั่วโมง, ห้ามแจกเวลา/คูปอง, ห้ามแก้ GameLock Service/QuizWeb Service/port 771; ค่าที่ส่งเป็น unverified และยังไม่ปลดล็อกจริง. ถ้าหน้าเว็บรันจาก GitHub Pages ต้องแจ้งเรื่อง origin ก่อนเชื่อม อย่าเปิด CORS กว้างเอง.
