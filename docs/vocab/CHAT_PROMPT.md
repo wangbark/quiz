@@ -28,3 +28,9 @@ URL ของ GameLock: /gamelock-client.html
 ห้ามเปลี่ยน route/compile/service เดิมด้วยการเดา; ก่อนเชื่อมให้ตรวจ C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs เวอร์ชันใช้งานจริง และสำรอง
 การพัฒนาในแชตนี้จำกัดการจัดการฝั่งโมดูล vocab เท่านั้น; เมนูรวม/สิทธิ์/การเปิด route ที่ port 771 ให้แชต GameLock หลักรับผิดชอบ
 คำศัพท์ไทยและอังกฤษอยู่ในโมดูล vocab เดียวกัน
+
+### API หลังบ้านโมดูล (หลังติดตั้ง patchadmin.ps1)
+- GET `http://127.0.0.1:771/api/modules/vocab` => `{ok:true,module:"vocab",data:{version:1,items:[...]}}` (รันได้บนเครื่อง Content Manager เท่านั้น)
+- POST route เดียวกันส่ง JSON `{version:1,items:[...]}`, ต้องมี header `X-QuizWeb-Admin: 1` และ same-origin จาก localhost:771
+- รายการมี `id,lang(th|en),word,reading,meaning,example,category,enabled`; เก็บใน `C:\ProgramData\QuizWeb\ContentManager\modules\vocab.json`
+- ฝั่งเว็บคำศัพท์ (port 770 / GitHub Pages) ยังไม่ได้เชื่อม data จาก localhost:771 โดยอัตโนมัติ ห้ามเรียก API loopback จากเครื่องผู้เรียน ต้องวางเส้นทางเผยแพร่ข้อมูลสาธารณะอย่างปลอดภัยก่อน
