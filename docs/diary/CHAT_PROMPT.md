@@ -28,3 +28,9 @@ URL ของ GameLock: /gamelock-client.html
 บันทึกเป็นข้อมูลส่วนบุคคล: ค่าเริ่มต้นห้ามเผยแพร่, ห้ามเก็บข้อความบันทึกลง repo สาธารณะ/ไฟล์ static, ห้ามสร้าง API เข้าถึงบันทึกโดยไม่มีการยืนยันตัวตนและควบคุมสิทธิ์จาก server
 ก่อนเชื่อมต้องตรวจ source จริง C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs และสำรอง ห้ามเดา route/compile/service
 การพัฒนาในแชตนี้จำกัดการจัดการฝั่งโมดูล diary เท่านั้น; เมนูรวม/สิทธิ์/การเปิด route ที่ port 771 ให้แชต GameLock หลักรับผิดชอบ
+
+### API หลังบ้านโมดูล (หลังติดตั้ง patchadmin.ps1)
+- GET `http://127.0.0.1:771/api/modules/diary` ให้รายการแม่แบบหัวข้อ/คำถามชวนเขียน `{version:1,items:[...]}`
+- POST same-origin ต้องมี header `X-QuizWeb-Admin: 1`; records มี `id,title,prompt,category,enabled`
+- ข้อมูลเก็บแยกใน `C:\ProgramData\QuizWeb\ContentManager\modules\diary.json`; ไม่ใช่ที่เก็บเนื้อหาบันทึกส่วนบุคคล
+- **ห้าม** ส่งบันทึกส่วนตัวไป GitHub Pages / static JSON; หากจะเก็บบันทึกจริงต้องเพิ่มระบบยืนยันตัวตนและสิทธิ์จากฝั่ง server ก่อน
