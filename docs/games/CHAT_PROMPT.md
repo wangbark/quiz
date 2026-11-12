@@ -38,3 +38,10 @@ URL ของ GameLock: /gamelock-client.html
 ให้อ่าน `docs/reward/REWARD_CONTRACT.md` และใช้ `../reward/reward-client.js` จากโมดูลเกมที่ถูกเสิร์ฟผ่าน QuizWeb port 770.
 สำหรับแต่ละการเล่น สร้าง UUID `attemptId` เพียงครั้งเดียว, ส่ง `module:"games"`, รหัสเกมใน `activityId`, `score`, `maxScore`, `completed` เมื่อจบ; retry ใช้ attemptId เดิม.
 ห้ามตั้งเกณฑ์ปลดเวลา/ออกคูปอง/แก้ GameLock หรือ API กลางเอง; browser score เป็น unverified จนกว่าจะแชตหลักทำวิธีตรวจผลฝั่งเซิร์ฟเวอร์.
+
+## Reward Core R2: เกณฑ์อยู่ที่ Admin และใช้ร่วมทั้ง 4 การ์ด
+ให้พัฒนากิจกรรมในโมดูลนี้โดยส่งเฉพาะ `module`, `activityId`, `attemptId`, `score`, `maxScore`, `completed` ผ่าน `../reward/reward-client.js` ตาม `docs/reward/REWARD_CONTRACT.md` รุ่น R2.
+เกณฑ์คะแนน/ชั่วโมง เปลี่ยนในหลังบ้าน `http://localhost:771/` เท่านั้น **ห้าม hardcode เกณฑ์นาทีไว้ในเว็บ** และห้ามแก้ GameLock, QuizWeb Service หรือ API กลาง.
+Admin ตั้งคะแนนแบบ raw/percent และเกณฑ์ราย activityId ได้โดยไม่ต้องแก้หน้าเว็บอีก ถ้าใช้ activityId เดิม.
+R2 ยังเป็น `unverified` / `grantedMinutes=0` จนกว่าจะตรวจสอบผลฝั่ง server และเชื่อม GameLock Service เครื่องลูกในแชตหลัก.
+
