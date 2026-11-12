@@ -26,3 +26,9 @@ URL ของ GameLock: /gamelock-client.html
 โมดูลนี้ต้องมีส่วนจัดการเกมในหลังบ้านกลาง (รายชื่อเกม, เปิด/ปิด, ลำดับการแสดง, ปรับค่าตั้งเกม, ดูสถิติเฉพาะกรณีที่ผู้ใช้สั่ง) โดยคงแบบทดสอบเดิม
 ก่อนเชื่อมต้องตรวจ source จริง C:\ProgramData\QuizWeb\ContentManager\QuizWebContentManagerService.cs และสำรอง ห้ามเดา route/compile/service
 การพัฒนาในแชตนี้จำกัดการจัดการฝั่งโมดูล games เท่านั้น; เมนูรวม/สิทธิ์/การเปิด route ที่ port 771 ให้แชต GameLock หลักรับผิดชอบ
+
+### API หลังบ้านโมดูล (หลังติดตั้ง patchadmin.ps1)
+- GET `http://127.0.0.1:771/api/modules/games` => `{ok:true,module:"games",data:{version:1,items:[...]}}`
+- POST same-origin ต้องมี header `X-QuizWeb-Admin: 1`; rows มี `id,title,slug,description,order,enabled`
+- เก็บใน `C:\ProgramData\QuizWeb\ContentManager\modules\games.json`
+- เว็บเกม port 770 / GitHub Pages ยังไม่ได้อ่านข้อมูลจาก 771 อัตโนมัติ; ต้องพัฒนา pipeline เผยแพร่ config เกมที่ไม่เป็นข้อมูลส่วนตัวต่อในแชตเกม ห้ามให้ client ต่างเครื่องเรียก localhost:771
