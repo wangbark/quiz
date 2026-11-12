@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="gamelock-ui-version" content="CW-4">
+<meta name="gamelock-ui-version" content="CW-5">
 <title>GameLock</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
@@ -415,15 +415,6 @@ body.secondary-mode .theme-controls{display:none}
 
     <button id="adminMode" class="action full">Admin ไม่จำกัดเวลา</button>
     <button id="lockNow" class="action full danger">ล็อกตอนนี้</button>
-    <div class="card-visibility">
-      <div class="card-visibility-title">การ์ดที่แสดงหน้า GameLock</div>
-      <div class="card-visibility-grid">
-        <label><input id="showQuizCard" type="checkbox" checked> แบบทดสอบ</label>
-        <label><input id="showVocabCard" type="checkbox" checked> คำศัพท์</label>
-        <label><input id="showDiaryCard" type="checkbox" checked> บันทึกประจำวัน</label>
-        <label><input id="showGamesCard" type="checkbox" checked> เกม</label>
-      </div>
-    </div>
     <button id="cancelAdmin" class="action full cancel">ยกเลิก</button>
     <div id="msg" class="msg"></div>
   </section>
@@ -465,56 +456,45 @@ let pinBoxes=[];
 
 /* GAMELOCK_LAUNCH_CARDS_V1 */
 /* gamelock-four-module-v1 */
-const CARD_VIS_KEY='gamelockCardVisibilityV2';
+/* GAMELOCK_CARD_VISIBILITY_CENTRAL_V1 */
 const cardDefaults={quiz:true,vocab:true,diary:true,games:true};
 let cardVisibility={...cardDefaults};
-function loadCardVisibility(){
-  try{
-    let saved=JSON.parse(localStorage.getItem(CARD_VIS_KEY)||'null');
-    if(!saved){
-      const old=JSON.parse(localStorage.getItem('gamelockCardVisibilityV1')||'null');
-      if(old&&typeof old==='object'){
-        saved={
-          quiz:old.quiz!==false,
-          vocab:old.thai!==false||old.english!==false,
-          diary:true,
-          games:old.games!==false
-        };
-      }
-    }
-    if(saved&&typeof saved==='object'){
-      cardVisibility={...cardDefaults,...saved};
-      Object.keys(cardDefaults).forEach(k=>cardVisibility[k]=cardVisibility[k]!==false);
-    }
-  }catch(_){cardVisibility={...cardDefaults}}
-}
-function saveCardVisibility(){
-  try{localStorage.setItem(CARD_VIS_KEY,JSON.stringify(cardVisibility))}catch(_){}
-}
+let hasCentralCards=false;
 function applyCardVisibility(){
   const q=$('quiz'),v=$('vocab'),d=$('diary'),g=$('games');
   if(q)q.hidden=!(state.quizEnabled&&cardVisibility.quiz);
   if(v)v.hidden=!cardVisibility.vocab;
   if(d)d.hidden=!cardVisibility.diary;
   if(g)g.hidden=!cardVisibility.games;
-  [['showQuizCard','quiz'],['showVocabCard','vocab'],
-   ['showDiaryCard','diary'],['showGamesCard','games']]
-   .forEach(([id,key])=>{const el=$(id);if(el)el.checked=!!cardVisibility[key]});
 }
-function bindCardVisibility(){
-  [['showQuizCard','quiz'],['showVocabCard','vocab'],
-   ['showDiaryCard','diary'],['showGamesCard','games']]
-   .forEach(([id,key])=>{
-     const el=$(id);if(!el)return;
-     el.addEventListener('change',()=>{
-       cardVisibility[key]=!!el.checked;
-       saveCardVisibility();
-       applyCardVisibility();
-     });
-   });
+async function refreshCardVisibility(){
+  try{
+    const response=await fetch('./reward/card-visibility.json?ts='+Date.now(),{
+      cache:'no-store',credentials:'same-origin'
+    });
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.json();
+    const obj=data&&data.cards;
+    if(data.version!==1||!obj||!Object.keys(cardDefaults).every(k=>typeof obj[k]==='boolean')){
+      throw new Error('Invalid central card settings');
+    }
+    cardVisibility={quiz:obj.quiz,vocab:obj.vocab,diary:obj.diary,games:obj.games};
+    hasCentralCards=true;
+    applyCardVisibility();
+  }catch(err){
+    // Keep the last known server values if a reload fails; never use localStorage as a setting.
+    if(!hasCentralCards){cardVisibility={...cardDefaults};applyCardVisibility()}
+    console.warn('[GameLock cards] Central settings unavailable:',err);
+  }
 }
+applyCardVisibility();
+refreshCardVisibility();
+setInterval(refreshCardVisibility,10000);
+window.addEventListener('pageshow',refreshCardVisibility);
+window.addEventListener('focus',refreshCardVisibility);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshCardVisibility()});
 function openLearningPage(file){location.href='./'+file}
-loadCardVisibility();
+
 
 function post(action,extra={}){
   if(!bridge)return;
@@ -721,7 +701,7 @@ $('quiz').onclick=()=>{
 $('vocab').onclick=()=>openLearningPage('vocab/index.html');
 $('diary').onclick=()=>openLearningPage('diary/index.html');
 $('games').onclick=()=>openLearningPage('games/index.html');
-bindCardVisibility();
+
 applyCardVisibility();
 $('admin').onclick=openAdmin;
 $('coupon').onclick=openCoupon;
