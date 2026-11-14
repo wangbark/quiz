@@ -9,11 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/typing.css?v=r4">
+  <link rel="stylesheet" href="../assets/typing.css?v=r20">
   <link rel="stylesheet" href="../assets/tts-r17.css?v=r17">
-  <script src="../assets/questions.js" defer></script>
-  <script src="../assets/speech.js?v=r19" defer></script>
-  <script src="../assets/typing.js?v=r17" defer></script>
+  <script src="../assets/questions.js?v=r20" defer></script>
+  <script src="../assets/speech.js?v=r20" defer></script>
+  <script src="../assets/typing.js?v=r20" defer></script>
 </head>
 <body class="play-page english-theme" data-language="en">
   <main class="site-shell play-shell">
@@ -25,6 +25,7 @@
       <div class="progress-track" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
       <div class="prompt-tts"><p class="prompt-label">โจทย์</p><button type="button" id="listenButton" class="listen-button" title="ฟังโจทย์เสียงไทย">🔊 ฟังโจทย์</button></div>
       <div class="target-text" id="targetText" aria-label="โจทย์ฝึกพิมพ์"></div>
+      <p id="targetMeaning" class="target-meaning" aria-label="ความหมายภาษาไทย" hidden></p>
       <label class="input-label" for="typingInput">คำตอบ</label>
       <textarea id="typingInput" class="typing-input" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="inputHelp feedback" placeholder="Type here..."></textarea>
       <p class="input-help" id="inputHelp">กด Enter เพื่อตรวจคำตอบ</p>

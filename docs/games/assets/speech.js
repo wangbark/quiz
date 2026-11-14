@@ -1,4 +1,4 @@
-/* QuizWeb Games R19 — Browser Default / Google Thai TTS preferred.
+/* QuizWeb Games R20 — Thai reading PLUS Thai meaning for English exercises.
  * Prefer Thai voices (Google Thai if exposed), otherwise ALWAYS use the
  * browser's default speechSynthesis voice. No Premwadee requirement.
  * Every game uses this shared module; no external API, keys or GameLock.
@@ -51,61 +51,58 @@ window.QuizWebGamesSpeech = (() => {
   }
   function cancel(){
     seq++;if(timeout)clearTimeout(timeout);timeout=0;active=null;
-    try{engine()?.cancel();}catch(_){}
-  }
-  function say(text,onDone=()=>{}){
+    try{engine()?.cancel();}catch(  // meaning is optional third argument so existing say(word, onDone) stays compatible.
+  function say(text,onDone=()=>{},meaning=''){
     cancel();const ticket=seq;
+    const original=String(text??'').trim();
+    const translation=String(meaning??'').trim();
     let finished=false,attemptedDefault=false;
     function finish(){
       if(finished||ticket!==seq)return;
       finished=true;clearTimeout(timeout);timeout=0;active=null;
-      try{onDone();}catch(e){console.error('QuizWeb Games TTS callback error',e);}
+      if(typeof onDone==='function')try{onDone();}catch(e){console.error('QuizWeb TTS callback',e);}
     }
-    const original=String(text??'').trim();
     if(!original){timeout=setTimeout(finish,40);return;}
     const synth=engine();
     if(!synth||typeof SpeechSynthesisUtterance==='undefined'){
       warn('เบราว์เซอร์นี้ไม่รองรับเสียงอ่าน · ลองใช้ Chrome หรือ Edge');
       timeout=setTimeout(finish,120);return;
     }
-    // Do not wait on voiceschanged here: mobile browsers often require speak()
-    // inside the direct user interaction (Start / Listen).
     const preferred=thaiVoice();
-    function speakWith(voice){
+    const hasEnglish=/[A-Za-z]/.test(original);
+    const thaiText=hasEnglish?thaiReading(original):original;
+    const thaiPhrase=translation&&hasEnglish?('คำว่า '+thaiText+' แปลว่า '+translation):thaiText;
+    const originalPhrase=translation&&hasEnglish?(original+' แปลว่า '+translation):original;
+    function speakWith(voice,useOriginal=false){
       if(ticket!==seq||finished)return;
-      const isThai=!!voice;
-      // A Thai voice reads English words using Thai-script transliteration.
-      // With no Thai voice, the browser default speaks the ORIGINAL word:
-      // feeding Thai script to an English-only voice can produce silence.
-      const spoken=isThai?thaiReading(original):original;
+      // Some Chrome/Android instances hide their Thai system voice in getVoices().
+      // Ask the browser to speak Thai script with lang=th-TH before falling back
+      // to the mixed-language original (which still contains a Thai translation).
+      const spoken=useOriginal?originalPhrase:thaiPhrase;
       let u;
       try{
         u=new SpeechSynthesisUtterance(spoken);
-        if(voice){u.voice=voice;u.lang='th-TH';}
-        else{u.lang=/[\u0E00-\u0E7F]/.test(original)?'th-TH':'en-US';}
-        u.rate=.88;u.pitch=1;
+        if(voice)u.voice=voice;
+        u.lang=useOriginal&&hasEnglish?'en-US':'th-TH';
+        u.rate=.86;u.pitch=1;
         u.onend=finish;
         u.onerror=()=>{
           if(ticket!==seq||finished)return;
-          if(voice&&!attemptedDefault){
-            attemptedDefault=true;
-            u.onerror=null;u.onend=null;
+          if(!attemptedDefault){
+            attemptedDefault=true;u.onend=null;u.onerror=null;
             try{synth.cancel();}catch(_){}
-            speakWith(null);
+            speakWith(null,true);
           }else{
-            warn('เบราว์เซอร์อ่านเสียงไม่ได้ · กดฟังคำอีกครั้งหรือตรวจระดับเสียง');
-            finish();
+            warn('เบราว์เซอร์อ่านเสียงไม่ได้ · กดฟังคำอีกครั้ง');finish();
           }
         };
         active=u;
-        // Watchdog only prevents quiz/level transitions from being blocked forever.
-        // It is longer for sentences; actual speech ends via onend.
-        if(timeout)clearTimeout(timeout);
-        timeout=setTimeout(finish,Math.min(28000,5500+spoken.length*450));
+        clearTimeout(timeout);
+        timeout=setTimeout(finish,Math.min(35000,6000+spoken.length*460));
         if(synth.paused&&typeof synth.resume==='function')synth.resume();
         synth.speak(u);
       }catch(_){
-        if(voice&&!attemptedDefault){attemptedDefault=true;speakWith(null);}
+        if(!attemptedDefault){attemptedDefault=true;speakWith(null,true);}
         else{warn('ไม่สามารถใช้เสียงอ่านของเบราว์เซอร์ได้');finish();}
       }
     }

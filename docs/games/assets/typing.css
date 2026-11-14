@@ -102,3 +102,6 @@ body.home-page,body.play-page,body.english-theme{background:#f7f9fc}
 .home-page .survivor-card .game-label{color:#c9fff1;background:#24675cbf}
 .home-page .survivor-card h3{color:#fff;text-shadow:0 2px 7px #0a3537}
 .home-page .survivor-card .play-link{background:#0fab8a;color:#fff}
+
+/* R20 · compact Thai translation beneath English typing prompts */
+.target-meaning{margin:-10px 0 17px;padding:7px 12px;color:#435e72;background:#eff5fa;border-radius:10px;font-size:15px;font-weight:700;line-height:1.6}

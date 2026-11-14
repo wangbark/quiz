@@ -134,11 +134,11 @@
     return {lang,entry:[picked.text,picked.meaning]};
   }
   function announceWord(){
-    if(state.quest) speak(state.quest.text,state.quest.lang);
+    if(state.quest) speak(state.quest.text,state.quest.lang,state.quest.meaning);
   }
-  function speak(text,lang){
+  function speak(text,lang,meaning){
     // All games use the same strict Thai-language TTS voice and Thai-script pronunciation.
-    window.QuizWebGamesSpeech?.say(text);
+    window.QuizWebGamesSpeech?.say(text, undefined, lang === 'en' ? meaning : '');
   }
   function newQuest(){
     const {lang,entry}=pickWord();const raw=segment(entry[0]);const letters=raw.filter(c=>c.trim().length>0);

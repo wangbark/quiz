@@ -187,7 +187,7 @@
       ui.speak.disabled = false;
       drawWord();
       spawn();
-    });
+    }, meaning());
   }
 
   function spawn() {
@@ -359,7 +359,7 @@
   ui.restart.addEventListener('click', startGame);
   ui.speak.addEventListener('click', () => {
     if (!word() || phase === 'speaking') return;
-    window.QuizWebGamesSpeech.say(word());
+    window.QuizWebGamesSpeech.say(word(), undefined, meaning());
   });
   document.addEventListener('keydown', event => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;

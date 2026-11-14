@@ -179,7 +179,7 @@
       clockStart = performance.now() - elapsed;
       board.focus({preventScroll:true});
       raf = requestAnimationFrame(frame);
-    });
+    }, chosen[currentWord].meaning);
   }
   function begin() {
     clearExisting();
@@ -389,7 +389,7 @@
   $('restartButton').addEventListener('click', begin);
   $('repeatWordButton').addEventListener('click', () => {
     if (mode === 'announcing' || !chosen[currentWord]) return;
-    window.QuizWebGamesSpeech.say(chosen[currentWord].word);
+    window.QuizWebGamesSpeech.say(chosen[currentWord].word, undefined, chosen[currentWord].meaning);
   });
   $('soundButton').addEventListener('click', () => {
     soundEnabled = !soundEnabled;

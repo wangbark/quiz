@@ -3,6 +3,8 @@
   'use strict';
   const language = document.body.dataset.language === 'en' ? 'en' : 'th';
   const bank = window.QUIZWEB_GAMES_P3_QUESTIONS?.[language];
+  const englishMeanings = window.QUIZWEB_GAMES_P3_QUESTIONS?.enMeanings || {};
+  const getMeaning = prompt => language === 'en' ? (englishMeanings[prompt] || '') : '';
   if (!bank || !bank.words || !bank.sentences) return;
   const $ = id => document.getElementById(id);
   const ui = {
@@ -66,7 +68,7 @@
 
   function speakQuestion(){
     if(position>=total || !questions[position])return;
-    window.QuizWebGamesSpeech?.say(questions[position]);
+    window.QuizWebGamesSpeech?.say(questions[position], undefined, getMeaning(questions[position]));
   }
   function renderQuestion() {
     if (position >= total) return finishRound();
@@ -82,6 +84,10 @@
     ui.progress.setAttribute('aria-valuenow', String(position));
     ui.fill.style.width = `${Math.round(position / total * 100)}%`;
     drawTarget();
+    if (language === 'en') {
+      const meaningEl = $('targetMeaning');
+      if (meaningEl) { meaningEl.textContent = 'แปลว่า ' + getMeaning(questions[position]); meaningEl.hidden = !getMeaning(questions[position]); }
+    }
     speakQuestion();
     if (window.matchMedia('(min-width: 800px)').matches) ui.entry.focus({preventScroll: true});
   }
