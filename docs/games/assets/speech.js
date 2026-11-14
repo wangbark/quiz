@@ -1,4 +1,4 @@
-/* QuizWeb Games R20 — Thai reading PLUS Thai meaning for English exercises.
+/* QuizWeb Games R21 — Short Thai reading + translation, robust browser speech fallback.
  * Prefer Thai voices (Google Thai if exposed), otherwise ALWAYS use the
  * browser's default speechSynthesis voice. No Premwadee requirement.
  * Every game uses this shared module; no external API, keys or GameLock.
@@ -51,62 +51,79 @@ window.QuizWebGamesSpeech = (() => {
   }
   function cancel(){
     seq++;if(timeout)clearTimeout(timeout);timeout=0;active=null;
-    try{engine()?.cancel();}catch(  // meaning is optional third argument so existing say(word, onDone) stays compatible.
+    try{engine()?.canc  // A word is pronounced in Thai transcription followed immediately by its Thai meaning.
+  // "FISH" + "ปลา" -> "ฟิช ปลา". No intro words or labels.
+  // Third argument is optional. Legacy say(text, onDone) remains supported.
   function say(text,onDone=()=>{},meaning=''){
-    cancel();const ticket=seq;
+    cancel();
+    const ticket=seq;
+    const synth=engine();
     const original=String(text??'').trim();
     const translation=String(meaning??'').trim();
-    let finished=false,attemptedDefault=false;
+    const pronounced=/[A-Za-z]/.test(original)?thaiReading(original):original;
+    const spoken=(translation&&/[A-Za-z]/.test(original)?pronounced+' '+translation:pronounced).trim();
+    let completed=false,tryIndex=-1,utterance=null,watchdog=0;
     function finish(){
-      if(finished||ticket!==seq)return;
-      finished=true;clearTimeout(timeout);timeout=0;active=null;
-      if(typeof onDone==='function')try{onDone();}catch(e){console.error('QuizWeb TTS callback',e);}
+      if(completed||ticket!==seq)return;
+      completed=true;
+      clearTimeout(watchdog);watchdog=0;
+      clearTimeout(timeout);timeout=0;active=null;
+      if(typeof onDone==='function')try{onDone();}catch(err){console.error('QuizWeb TTS callback failed',err);}
     }
-    if(!original){timeout=setTimeout(finish,40);return;}
-    const synth=engine();
+    if(!spoken){timeout=setTimeout(finish,25);return;}
     if(!synth||typeof SpeechSynthesisUtterance==='undefined'){
-      warn('เบราว์เซอร์นี้ไม่รองรับเสียงอ่าน · ลองใช้ Chrome หรือ Edge');
-      timeout=setTimeout(finish,120);return;
+      warn('เบราว์เซอร์ไม่รองรับเสียงพูด · กดฟังคำใน Chrome หรือ Edge');
+      timeout=setTimeout(finish,150);return;
     }
+    const voices=availableVoices();
     const preferred=thaiVoice();
-    const hasEnglish=/[A-Za-z]/.test(original);
-    const thaiText=hasEnglish?thaiReading(original):original;
-    const thaiPhrase=translation&&hasEnglish?('คำว่า '+thaiText+' แปลว่า '+translation):thaiText;
-    const originalPhrase=translation&&hasEnglish?(original+' แปลว่า '+translation):original;
-    function speakWith(voice,useOriginal=false){
-      if(ticket!==seq||finished)return;
-      // Some Chrome/Android instances hide their Thai system voice in getVoices().
-      // Ask the browser to speak Thai script with lang=th-TH before falling back
-      // to the mixed-language original (which still contains a Thai translation).
-      const spoken=useOriginal?originalPhrase:thaiPhrase;
-      let u;
-      try{
-        u=new SpeechSynthesisUtterance(spoken);
-        if(voice)u.voice=voice;
-        u.lang=useOriginal&&hasEnglish?'en-US':'th-TH';
-        u.rate=.86;u.pitch=1;
-        u.onend=finish;
-        u.onerror=()=>{
-          if(ticket!==seq||finished)return;
-          if(!attemptedDefault){
-            attemptedDefault=true;u.onend=null;u.onerror=null;
-            try{synth.cancel();}catch(_){}
-            speakWith(null,true);
-          }else{
-            warn('เบราว์เซอร์อ่านเสียงไม่ได้ · กดฟังคำอีกครั้ง');finish();
-          }
-        };
-        active=u;
-        clearTimeout(timeout);
-        timeout=setTimeout(finish,Math.min(35000,6000+spoken.length*460));
-        if(synth.paused&&typeof synth.resume==='function')synth.resume();
-        synth.speak(u);
-      }catch(_){
-        if(!attemptedDefault){attemptedDefault=true;speakWith(null,true);}
-        else{warn('ไม่สามารถใช้เสียงอ่านของเบราว์เซอร์ได้');finish();}
+    const systemDefault=voices.find(v=>v.default&&!(/^th(?:-|$)/i.test(v.lang||'')))||null;
+    const candidates=[];
+    if(preferred)candidates.push({voice:preferred,label:'Thai voice'});
+    candidates.push({voice:null,label:'Browser default Thai'});
+    if(systemDefault)candidates.push({voice:systemDefault,label:'System default voice'});
+    function tryNext(){
+      if(completed||ticket!==seq)return;
+      clearTimeout(watchdog);watchdog=0;
+      tryIndex++;
+      if(tryIndex>=candidates.length){
+        warn('เสียงอ่านยังไม่ทำงาน · แตะปุ่ม 🔊 ฟังคำอีกครั้ง และตรวจเสียงของเบราว์เซอร์');
+        finish();return;
       }
+      try{
+        // Browser engines sometimes remain paused after a prior cancellation.
+        synth.cancel();
+        if(synth.paused&&typeof synth.resume==='function')synth.resume();
+        const current=candidates[tryIndex];
+        const u=new SpeechSynthesisUtterance(spoken);
+        utterance=u;active=u;
+        if(current.voice)u.voice=current.voice;
+        u.lang='th-TH';
+        u.rate=.87;u.pitch=1;u.volume=1;
+        let started=false,startAt=0;
+        u.onstart=()=>{
+          if(ticket!==seq||completed||utterance!==u)return;
+          started=true;startAt=Date.now();
+          clearTimeout(watchdog);
+          // Guard against a missing onend without blocking gameplay indefinitely.
+          watchdog=setTimeout(finish,Math.min(16000,5000+spoken.length*350));
+        };
+        u.onend=()=>{
+          if(ticket!==seq||completed||utterance!==u)return;
+          // A zero-length 'speech' on a missing engine is not a successful read.
+          if((!started||Date.now()-startAt<120)&&tryIndex<candidates.length-1){tryNext();return;}
+          finish();
+        };
+        u.onerror=()=>{
+          if(ticket!==seq||completed||utterance!==u)return;
+          tryNext();
+        };
+        synth.speak(u);
+        // On some Chromium/WebView builds neither onstart nor onerror fires.
+        watchdog=setTimeout(()=>{if(!started&&ticket===seq&&!completed)tryNext();},2800);
+      }catch(err){tryNext();}
     }
-    speakWith(preferred);
+    tryNext();
   }
   return {say,cancel,thaiReading,hasThaiVoice:()=>!!thaiVoice(),getPreferredVoice:thaiVoice};
 })();
