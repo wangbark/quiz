@@ -1,7 +1,7 @@
-/* QuizWeb Games R17 - Thai-accent TTS shared by ALL games.
- * English exercises use Thai-script reading and ONLY a Thai-language system voice.
- * A missing Thai voice is reported; the app never falls back to an English voice.
- * No remote TTS API, network calls or GameLock integrations.
+/* QuizWeb Games R19 — Browser Default / Google Thai TTS preferred.
+ * Prefer Thai voices (Google Thai if exposed), otherwise ALWAYS use the
+ * browser's default speechSynthesis voice. No Premwadee requirement.
+ * Every game uses this shared module; no external API, keys or GameLock.
  */
 window.QuizWebGamesSpeech = (() => {
   'use strict';
@@ -13,15 +13,19 @@ window.QuizWebGamesSpeech = (() => {
     ['TION','ชัน'],['SION','ชัน'],['TCH','ช'],['SH','ช'],['CH','ช'],['TH','ธ'],['PH','ฟ'],['WH','ว'],['CK','ก'],['QU','คว'],['NG','ง'],['EE','อี'],['OO','อู'],['EA','อี'],['OU','เอา'],['OW','โอ'],['AI','เอ'],['AY','เอ'],['OA','โอ'],['OI','ออย'],['AR','อาร์'],['ER','เออร์'],['OR','ออร์'],['IR','เออร์'],['UR','เออร์'],['AU','ออ'],['AW','ออ'],['IGHT','ไอต์'],['IGH','ไอ'],['IGH','ไอ']
   ];
   const letters={A:'แอ',B:'บ',C:'ค',D:'ด',E:'เอ',F:'ฟ',G:'ก',H:'ฮ',I:'อิ',J:'จ',K:'ค',L:'ล',M:'ม',N:'น',O:'ออ',P:'พ',Q:'ค',R:'ร',S:'ส',T:'ต',U:'อุ',V:'ว',W:'ว',X:'กซ์',Y:'ย',Z:'ซ'};
-  let seq=0,timeout=0,active=null,noticeId='quizweb-games-thai-voice-warning';
+  let seq=0,timeout=0,active=null;
+  const noticeId='quizweb-games-speech-warning';
   const engine=()=>typeof window!=='undefined'&&window.speechSynthesis;
+  function availableVoices(){
+    try{return [...(engine()?.getVoices?.()||[])];}catch(_){return [];}
+  }
   function thaiVoice(){
-    let voices=[];try{voices=engine()?.getVoices?.()||[];}catch(_){return null;}
-    const th=voices.filter(v=>/^th(?:-|$)/i.test(String(v.lang||'')));
-    return th.find(v=>/premwadee|ไทย|thai/i.test(v.name||''))||th[0]||null;
+    const th=availableVoices().filter(v=>/^th(?:-|$)/i.test(String(v.lang||'')));
+    return th.find(v=>/google/i.test(v.name||''))||
+      th.find(v=>/ไทย|thai/i.test(v.name||''))||
+      th.find(v=>v.default)||th[0]||null;
   }
   function fallbackWord(word){
-    // Always returns Thai script. Unknown words are approximate, never an English voice.
     let x=word.toUpperCase().replace(/[^A-Z]/g,'');
     if(!x)return '';
     let out='';while(x){let matched=false;
@@ -36,42 +40,76 @@ window.QuizWebGamesSpeech = (() => {
       .replace(/[.!?]+/g,' เว้นวรรค ')
       .replace(/\s+/g,' ').trim();
   }
-  function warn(){
+  function warn(message){
     if(typeof document==='undefined')return;
     let el=document.getElementById(noticeId);
     if(!el){el=document.createElement('div');el.id=noticeId;el.setAttribute('role','status');
-      el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:99999;background:#243a38;color:#fff;border-radius:12px;padding:10px 16px;font:600 14px Sarabun,system-ui,sans-serif;box-shadow:0 4px 18px #0002;max-width:min(90vw,480px);text-align:center;pointer-events:none;';
+      el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:99999;background:#243a38;color:#fff;border-radius:12px;padding:10px 16px;font:600 14px Sarabun,system-ui,sans-serif;box-shadow:0 4px 18px #0002;max-width:min(90vw,500px);text-align:center;pointer-events:none;';
       (document.body||document.documentElement).appendChild(el);}
-    el.textContent='ไม่พบเสียงภาษาไทยในอุปกรณ์ · กรุณาติดตั้งเสียงไทย (เช่น Premwadee)';
-    clearTimeout(el._hideTimer);el._hideTimer=setTimeout(()=>el.remove(),4200);
+    el.textContent=message;
+    clearTimeout(el._hideTimer);el._hideTimer=setTimeout(()=>el.remove(),4600);
   }
-  function cancel(){seq++;if(timeout)clearTimeout(timeout);timeout=0;try{engine()?.cancel();}catch(_){}}
+  function cancel(){
+    seq++;if(timeout)clearTimeout(timeout);timeout=0;active=null;
+    try{engine()?.cancel();}catch(_){}
+  }
   function say(text,onDone=()=>{}){
-    cancel();const ticket=seq;let ended=false;
-    function finish(){if(ended||ticket!==seq)return;ended=true;clearTimeout(timeout);timeout=0;onDone();}
-    const reading=thaiReading(text);
-    if(!reading){timeout=setTimeout(finish,100);return;}
+    cancel();const ticket=seq;
+    let finished=false,attemptedDefault=false;
+    function finish(){
+      if(finished||ticket!==seq)return;
+      finished=true;clearTimeout(timeout);timeout=0;active=null;
+      try{onDone();}catch(e){console.error('QuizWeb Games TTS callback error',e);}
+    }
+    const original=String(text??'').trim();
+    if(!original){timeout=setTimeout(finish,40);return;}
     const synth=engine();
     if(!synth||typeof SpeechSynthesisUtterance==='undefined'){
-      warn();timeout=setTimeout(finish,300);return;
+      warn('เบราว์เซอร์นี้ไม่รองรับเสียงอ่าน · ลองใช้ Chrome หรือ Edge');
+      timeout=setTimeout(finish,120);return;
     }
-    const speakWith=(voice)=>{
-      if(ticket!==seq)return;
-      if(!voice){warn();timeout=setTimeout(finish,300);return;}
+    // Do not wait on voiceschanged here: mobile browsers often require speak()
+    // inside the direct user interaction (Start / Listen).
+    const preferred=thaiVoice();
+    function speakWith(voice){
+      if(ticket!==seq||finished)return;
+      const isThai=!!voice;
+      // A Thai voice reads English words using Thai-script transliteration.
+      // With no Thai voice, the browser default speaks the ORIGINAL word:
+      // feeding Thai script to an English-only voice can produce silence.
+      const spoken=isThai?thaiReading(original):original;
+      let u;
       try{
-        const u=new SpeechSynthesisUtterance(reading);
-        u.lang='th-TH';u.voice=voice;u.rate=.88;u.pitch=1.0;
-        u.onend=finish;u.onerror=finish;active=u;
-        timeout=setTimeout(finish,Math.min(18000,3000+reading.length*330));
+        u=new SpeechSynthesisUtterance(spoken);
+        if(voice){u.voice=voice;u.lang='th-TH';}
+        else{u.lang=/[\u0E00-\u0E7F]/.test(original)?'th-TH':'en-US';}
+        u.rate=.88;u.pitch=1;
+        u.onend=finish;
+        u.onerror=()=>{
+          if(ticket!==seq||finished)return;
+          if(voice&&!attemptedDefault){
+            attemptedDefault=true;
+            u.onerror=null;u.onend=null;
+            try{synth.cancel();}catch(_){}
+            speakWith(null);
+          }else{
+            warn('เบราว์เซอร์อ่านเสียงไม่ได้ · กดฟังคำอีกครั้งหรือตรวจระดับเสียง');
+            finish();
+          }
+        };
+        active=u;
+        // Watchdog only prevents quiz/level transitions from being blocked forever.
+        // It is longer for sentences; actual speech ends via onend.
+        if(timeout)clearTimeout(timeout);
+        timeout=setTimeout(finish,Math.min(28000,5500+spoken.length*450));
+        if(synth.paused&&typeof synth.resume==='function')synth.resume();
         synth.speak(u);
-      }catch(_){finish();}
-    };
-    const voice=thaiVoice();
-    if(voice){speakWith(voice);return;}
-    let done=false;
-    const onVoices=()=>{if(done||ticket!==seq)return;const newVoice=thaiVoice();if(newVoice){done=true;speakWith(newVoice);}};
-    try{synth.addEventListener?.('voiceschanged',onVoices,{once:true});}catch(_){ }
-    timeout=setTimeout(()=>{if(done||ticket!==seq)return;done=true;speakWith(thaiVoice());},850);
+      }catch(_){
+        if(voice&&!attemptedDefault){attemptedDefault=true;speakWith(null);}
+        else{warn('ไม่สามารถใช้เสียงอ่านของเบราว์เซอร์ได้');finish();}
+      }
+    }
+    speakWith(preferred);
   }
-  return {say,cancel,thaiReading,hasThaiVoice:()=>!!thaiVoice()};
+  return {say,cancel,thaiReading,hasThaiVoice:()=>!!thaiVoice(),getPreferredVoice:thaiVoice};
 })();
