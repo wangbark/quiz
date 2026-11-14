@@ -1,4 +1,4 @@
-/* QuizWeb Games R21 — Short Thai reading + translation, robust browser speech fallback.
+/* QuizWeb Games R22 — REPAIRED Thai speech syntax and short Thai meanings.
  * Prefer Thai voices (Google Thai if exposed), otherwise ALWAYS use the
  * browser's default speechSynthesis voice. No Premwadee requirement.
  * Every game uses this shared module; no external API, keys or GameLock.
@@ -51,7 +51,9 @@ window.QuizWebGamesSpeech = (() => {
   }
   function cancel(){
     seq++;if(timeout)clearTimeout(timeout);timeout=0;active=null;
-    try{engine()?.canc  // A word is pronounced in Thai transcription followed immediately by its Thai meaning.
+    try{engine()?.cancel();}catch(_){}
+  }
+  // A word is pronounced in Thai transcription followed immediately by its Thai meaning.
   // "FISH" + "ปลา" -> "ฟิช ปลา". No intro words or labels.
   // Third argument is optional. Legacy say(text, onDone) remains supported.
   function say(text,onDone=()=>{},meaning=''){
