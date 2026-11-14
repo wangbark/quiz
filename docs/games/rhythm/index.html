@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="quizweb-module" content="เกม">
+  <title>Rhythm Typing · QuizWeb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/typing.css?v=r6">
+  <link rel="stylesheet" href="rhythm.css?v=r6">
+  <script src="../assets/speech.js?v=r17" defer></script>
+  <script src="rhythm.js?v=r6" defer></script>
+</head>
+<body class="rhythm-page">
+  <main class="site-shell rhythm-shell">
+    <header class="topbar">
+      <a class="back-link" href="../index.html">‹ เลือกเกม</a>
+      <a class="brand brand-link" href="../../gamelock-client.html">QuizWeb</a>
+    </header>
+
+    <header class="rhythm-title"><div><h1>Rhythm <span>Typing</span></h1><p>เกมพิมพ์ตามจังหวะ</p></div><span class="rhythm-icon" aria-hidden="true">♫</span></header>
+
+    <section class="rhythm-stats" aria-label="คะแนนระหว่างเล่น">
+      <div><span>คำศัพท์</span><strong id="roundText">1 / 6</strong></div>
+      <div><span>คะแนน</span><strong id="scoreText">0</strong></div>
+      <div><span>คอมโบ</span><strong id="comboText">0</strong></div>
+      <div><span>หัวใจ</span><strong id="heartText" aria-label="หัวใจ 5 ดวง">♥♥♥♥♥</strong></div>
+    </section>
+
+    <div class="rhythm-layout">
+      <section class="rhythm-main" aria-label="เกมพิมพ์ตามจังหวะ">
+        <div class="rhythm-board" id="rhythmBoard" tabindex="0" aria-label="สนามเกม 4 ช่อง กดตัวอักษรตามที่ตก หรือแตะช่องเมื่อถึงเส้นตัดสิน">
+          <div class="lane-surface" id="laneSurface" aria-hidden="true">
+            <div class="lane" data-lane="0"></div>
+            <div class="lane" data-lane="1"></div>
+            <div class="lane" data-lane="2"></div>
+            <div class="lane" data-lane="3"></div>
+            <div id="notesLayer" class="notes-layer"></div>
+            <div class="hit-line"></div>
+            <div class="hit-circles"><span></span><span></span><span></span><span></span></div>
+            <div class="judge-text" id="judgeText"></div>
+            <div class="rhythm-speech-cue" id="rhythmSpeechCue" hidden>🔊 ฟังคำศัพท์</div>
+          </div>
+
+          <div class="game-overlay" id="gameOverlay">
+            <div class="overlay-content">
+              <span class="overlay-symbol" id="overlaySymbol" aria-hidden="true">♫</span>
+              <h2 id="overlayTitle">Rhythm Typing</h2>
+              <p id="overlayMessage">กดตัวอักษรเมื่อถึงเส้นด้านล่าง</p>
+              <button class="overlay-play" id="overlayPlay" type="button">เริ่มเล่น ▶</button>
+            </div>
+          </div>
+        </div>
+        <p class="rhythm-keyboard-hint">⌨️ คีย์บอร์ด: กดตัวอักษรที่ตกเมื่อถึงวงกลม</p>
+        <div class="rhythm-touch" aria-label="ปุ่มกดสำหรับมือถือ">
+          <button type="button" data-pad="0" aria-label="กดช่อง 1" disabled>·</button>
+          <button type="button" data-pad="1" aria-label="กดช่อง 2" disabled>·</button>
+          <button type="button" data-pad="2" aria-label="กดช่อง 3" disabled>·</button>
+          <button type="button" data-pad="3" aria-label="กดช่อง 4" disabled>·</button>
+        </div>
+      </section>
+      <aside class="rhythm-aside">
+        <div class="rhythm-word"><div class="rhythm-word-head"><span>คำที่กำลังเล่น</span><button id="repeatWordButton" type="button" aria-label="ฟังคำศัพท์อีกครั้ง">🔊 ฟังคำ</button></div><strong id="wordText">READY</strong><small id="meaningText">พร้อมเล่น</small><div class="word-letters" id="wordLetters"></div></div>
+        <div class="rhythm-tools">
+          <label for="tempoSelect">ความเร็ว</label>
+          <select id="tempoSelect"><option value="normal">ปกติ</option><option value="slow">ช้า</option></select>
+          <button id="pauseButton" type="button" disabled>⏸ พักเกม</button>
+          <button id="soundButton" type="button" aria-pressed="true">♫ เปิดเสียง</button>
+          <button id="restartButton" type="button">↻ เริ่มใหม่</button>
+        </div>
+        <div class="rhythm-best">สถิติสูงสุด <strong id="bestText">0</strong></div>
+        <details class="rhythm-help"><summary>วิธีเล่น</summary><p>คอมพิวเตอร์: กด A–Z ตามตัวอักษรที่ตก เมื่อถึงวงกลมด้านล่าง</p><p>มือถือ: แตะช่องด้านล่างให้ตรงจังหวะ</p><p>ตรงจังหวะมากได้ PERFECT และคะแนนมากขึ้น</p></details>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

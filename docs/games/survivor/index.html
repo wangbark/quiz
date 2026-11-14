@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#103b38"><meta name="quizweb-module" content="games">
+  <title>Word Survivor · QuizWeb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="survivor.css?v=r17"><script src="words.js?v=r17" defer></script><script src="soft-art.js?v=r17" defer></script><script src="../assets/speech.js?v=r17" defer></script><script src="survivor.js?v=r17" defer></script>
+</head>
+<body>
+<div class="app-shell">
+ <header class="topbar"><a class="back-link" href="../index.html">← เลือกเกม</a><span class="brand">⚔️ Word Survivor <small class="version-tag">R17 · THAI TTS</small></span><span class="wave-pill" id="waveText" aria-live="polite">WAVE A</span><button id="pauseBtn" class="top-btn" type="button" disabled>⏸ พัก</button></header>
+ <section class="hud" aria-label="สถานะเกม">
+  <div class="stat"><small>เลเวล</small><strong id="levelText">1</strong></div>
+  <div class="stat hp-stat"><small>พลังชีวิต <span id="hpText">100 / 100</span></small><div class="meter hp"><i id="hpBar"></i></div></div>
+  <div class="stat"><small>คำที่สำเร็จ</small><strong id="wordsText">0</strong></div>
+  <div class="stat"><small>เวลารอด</small><strong id="timeText">00:00</strong></div>
+  <div class="stat score-stat"><small>คะแนน</small><strong id="scoreText">0</strong></div>
+ </section>
+ <div class="quest-bar"><div class="quest-title"><span>คำศัพท์เป้าหมาย <strong id="questText">—</strong></span><span id="questMeaning">เลือกอาชีพเพื่อเริ่มเล่น</span><button id="speakBtn" title="ฟังคำศัพท์" type="button">🔊 ฟังคำ</button></div><div id="letterSlots" class="letter-slots" aria-label="ตัวอักษรที่เก็บได้"></div><div class="meter letters"><i id="letterBar"></i></div></div>
+ <main class="stage" id="stage"><canvas id="arena" width="1050" height="630" aria-label="สนามเกม Word Survivor มุมเฉียงสูง 2.5D"></canvas>
+  <div id="bossAlert" class="boss-alert" hidden>⚠️ บอสปรากฏตัว!</div>
+  <div id="floatNote" class="float-note" aria-live="polite"></div>
+  <div id="touchStick" class="touch-stick" aria-label="จอยเดินสำหรับหน้าจอสัมผัส"><div class="stick-base"><div id="stickKnob" class="stick-knob"></div></div></div>
+  <div id="setupOverlay" class="overlay"><div class="modal setup-modal"><div class="modal-mark">⚔️</div><h1>Word Survivor</h1><p class="sub">โหมด Endless · ภาพการ์ตูน 2.5D · Wave A–Z, AA, AB…</p><div class="setup-label">เลือกอาชีพ</div>
+   <div class="choice-grid" id="heroChoices"><button type="button" class="choice selected" data-hero="warrior"><span class="choice-emoji">🛡️</span><strong>นักดาบ</strong><small>ฟันใกล้ · อึด · โล่</small></button><button type="button" class="choice" data-hero="archer"><span class="choice-emoji">🏹</span><strong>นักธนู</strong><small>ยิงไกล · ยิงหลายดอก</small></button><button type="button" class="choice" data-hero="mage"><span class="choice-emoji">🪄</span><strong>นักเวท</strong><small>ลูกแก้ว · สายฟ้า</small></button></div>
+   <div class="setup-bottom"><div><div class="setup-label">ภาษาโจทย์</div><div class="pills" id="languageChoices"><button type="button" data-language="th">ไทย</button><button type="button" class="selected" data-language="en">English</button><button type="button" data-language="mix">ผสม</button></div></div><div><div class="setup-label">ประเภทโจทย์</div><div class="pills" id="typeChoices"><button type="button" class="selected" data-type="word">เริ่มจากคำ</button><button type="button" data-type="phrase">เริ่มจากประโยค</button></div></div></div>
+   <button id="startBtn" class="primary" type="button">เริ่มเอาตัวรอด →</button><p class="hint">WASD / ลูกศร = เดิน · โจมตีอัตโนมัติ · มือถือใช้จอย</p>
+  </div></div>
+  <div id="upgradeOverlay" class="overlay" hidden><div class="modal"><div class="modal-mark">✨</div><h2>เลเวลอัป!</h2><p class="sub">เลือกพลัง 1 อย่าง</p><div class="upgrade-grid" id="upgradeChoices"></div></div></div>
+  <div id="pauseOverlay" class="overlay" hidden><div class="modal short"><div class="modal-mark">⏸</div><h2>พักเกม</h2><button class="primary" id="resumeBtn" type="button">เล่นต่อ</button></div></div>
+  <div id="endOverlay" class="overlay" hidden><div class="modal short"><div class="modal-mark" id="endIcon">🏆</div><h2 id="endTitle">จบเกม</h2><p class="sub" id="endSummary"></p><p class="best" id="bestText"></p><button class="primary" id="retryBtn" type="button">เล่นอีกครั้ง</button><button class="quiet" id="changeHeroBtn" type="button">เปลี่ยนอาชีพ</button></div></div>
+ </main>
+ <footer class="footer"><span>มอนสเตอร์เก่งขึ้นทุก Wave · ตัวอักษรอยู่เฉพาะไอเทมดรอป</span><span id="awakeText">ENDLESS</span><span id="currentWeapon">⚔️ ดาบกวาด</span></footer>
+</div>
+</body>
+</html>

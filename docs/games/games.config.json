@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "typing-th",
+      "title": "พิมพ์ไทยให้คล่อง",
+      "slug": "thai-typing",
+      "description": "ฝึกพิมพ์คำศัพท์ภาษาไทย และประโยคสั้น ๆ ใกล้ตัว",
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "id": "typing-en",
+      "title": "English Typing Fun",
+      "slug": "english-typing",
+      "description": "พิมพ์คำภาษาอังกฤษพื้นฐาน และประโยคง่าย ๆ สำหรับ ป.3",
+      "order": 2,
+      "enabled": true
+    },
+    {
+      "id": "letter-tetris-en",
+      "title": "English Letter Tetris",
+      "slug": "english-letter-tetris",
+      "description": "เรียงคำศัพท์ภาษาอังกฤษจากตัวอักษรที่ตกลงมา และส่งตัวที่ไม่ใช่ลงถังขยะ",
+      "order": 3,
+      "enabled": true
+    },
+    {
+      "id": "typing-rhythm-en",
+      "title": "Rhythm Typing",
+      "slug": "english-rhythm-typing",
+      "description": "กดตัวอักษรภาษาอังกฤษให้ตรงจังหวะ",
+      "order": 4,
+      "enabled": true
+    },
+    {
+      "id": "word-survivor",
+      "title": "Word Survivor",
+      "slug": "word-survivor",
+      "description": "เดินหลบมอน เก็บอักษร เลเวลอัปและสู้บอส",
+      "order": 5,
+      "enabled": true
+    }
+  ]
+}

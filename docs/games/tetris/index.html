@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="quizweb-module" content="เกม">
+  <meta name="theme-color" content="#effaf8">
+  <title>English Letter Tetris · เกมคำศัพท์ ป.3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/typing.css?v=r6">
+  <link rel="stylesheet" href="tetris.css?v=r6">
+  <script src="../assets/speech.js?v=r17" defer></script>
+  <script src="tetris.js?v=r6" defer></script>
+</head>
+<body class="tetris-page">
+  <main class="site-shell tetris-shell">
+    <header class="topbar">
+      <a class="back-link" href="../index.html">‹ เลือกเกม</a>
+      <a class="brand brand-link" href="../../gamelock-client.html">QuizWeb</a>
+    </header>
+
+    <section class="tetris-hero">
+      <div><h1>English <em>Letter Tetris</em></h1></div>
+    </section>
+
+    <section class="tetris-stats" aria-label="สถานะเกม">
+      <div class="stat-item"><span>คำที่กำลังฝึก</span><strong id="levelText">1 / 6</strong></div>
+      <div class="stat-item"><span>คะแนน</span><strong id="scoreText">0</strong></div>
+      <div class="stat-item"><span>หัวใจ</span><strong id="livesText" aria-label="เหลือสามหัวใจ">❤️❤️❤️</strong></div>
+      <div class="stat-item"><span>ทิ้งลงถัง</span><strong id="trashText">0</strong></div>
+    </section>
+
+    <section class="tetris-body">
+      <div class="board-panel">
+        <div class="word-topline">
+          <div class="word-meaning">ความหมาย <strong id="wordMeaning">แมว</strong></div>
+          <button id="speakWordButton" class="tiny-button speak-button" type="button" aria-label="ฟังคำศัพท์อีกครั้ง">🔊 ฟังคำ</button>
+          <button id="pauseButton" type="button" class="tiny-button" disabled>⏸ พักเกม</button>
+        </div>
+        <div class="word-preview" id="wordPreview" aria-live="off" aria-label="คำศัพท์ที่ต้องเรียง"></div>
+        <p class="next-instruction" id="nextInstruction"></p>
+
+        <div class="board" id="board" tabindex="0" aria-label="สนามตัวอักษรตก มีเจ็ดช่องสะกดคำและช่องถังขยะทางขวาสุด">
+          <div class="fall-zone" id="fallZone">
+            <div class="lane-grid" id="laneGrid" aria-hidden="true"></div>
+            <div class="falling-letter" id="fallingLetter" hidden aria-hidden="true">A</div>
+          </div>
+          <div class="floor-zone" id="floorZone" aria-hidden="true"></div>
+          <div class="board-overlay" id="boardOverlay">
+            <div class="overlay-card">
+              <span class="overlay-emoji" id="overlayEmoji" aria-hidden="true">🎮</span>
+              <h2 id="overlayTitle">พร้อมเล่นแล้วหรือยัง?</h2>
+              <p id="overlayMessage">← → เลื่อน · ↓ ปล่อย · 🗑️ ทิ้งตัวที่ไม่ใช่</p>
+              <button class="overlay-action" id="overlayAction" type="button">เริ่มเล่น ▶</button>
+            </div>
+          </div>
+          <div class="board-toast" id="boardToast" hidden aria-live="polite"></div>
+        </div>
+
+        <div class="touch-controls" aria-label="ปุ่มควบคุมตัวอักษร">
+          <button type="button" class="arrow-control" id="leftButton" disabled aria-label="เลื่อนไปทางซ้าย">← <span>ซ้าย</span></button>
+          <button type="button" class="drop-control" id="dropButton" disabled aria-label="ปล่อยตัวอักษรลงทันที">↓ <span>ปล่อยลง</span></button>
+          <button type="button" class="arrow-control" id="rightButton" disabled aria-label="เลื่อนไปทางขวา">→ <span>ขวา</span></button>
+        </div>
+        <p class="tetris-feedback" id="feedback" role="status" aria-live="polite"></p>
+      </div>
+
+      <aside class="help-panel">
+        <h2>ตั้งค่าเกม</h2>
+        <label class="speed-field" for="speedSelect">ความเร็ว</label>
+        <select id="speedSelect" class="speed-select"><option value="slow">ช้า</option><option value="normal">ปกติ</option></select>
+        <button type="button" id="restartButton" class="restart-tetris">↻ เริ่มรอบใหม่</button>
+        <details class="howto-details">
+          <summary>วิธีเล่น</summary>
+          <p>← → เลื่อนตัวอักษรให้ตรงช่องลำดับถัดไป</p>
+          <p>↓ ปล่อยลงทันที</p>
+          <p>🗑️ ทิ้งตัวอักษรที่ไม่ตรงคำลงช่องขวาสุด</p>
+        </details>
+      </aside>
+    </section>
+    
+  </main>
+</body>
+</html>

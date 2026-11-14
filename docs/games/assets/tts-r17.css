@@ -1,0 +1,5 @@
+/* Games R17: compact listening button for the typing games */
+.prompt-tts{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:0 0 8px}
+.prompt-tts .prompt-label{margin:0}
+.listen-button{border:1px solid #b7d6ce;background:#e6f6f0;color:#1a6662;border-radius:11px;padding:7px 13px;cursor:pointer;font:700 14px Sarabun,"Segoe UI",sans-serif;white-space:nowrap}
+.listen-button:hover{background:#d2f0e7}.listen-button:focus-visible{outline:3px solid #5ab8a6;outline-offset:2px}

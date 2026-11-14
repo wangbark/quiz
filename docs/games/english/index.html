@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="quizweb-module" content="เกม">
+  <meta name="theme-color" content="#f7f8ff">
+  <title>English Typing Fun · ป.3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/typing.css?v=r4">
+  <link rel="stylesheet" href="../assets/tts-r17.css?v=r17">
+  <script src="../assets/questions.js" defer></script>
+  <script src="../assets/speech.js?v=r17" defer></script>
+  <script src="../assets/typing.js?v=r17" defer></script>
+</head>
+<body class="play-page english-theme" data-language="en">
+  <main class="site-shell play-shell">
+    <header class="topbar"><a class="back-link" href="../index.html">‹ เลือกเกม</a><a class="brand brand-link" href="../../gamelock-client.html">QuizWeb</a></header>
+    <section class="play-heading"><div><h1>English Typing</h1></div></section>
+    <section class="play-controls" aria-label="เลือกรูปแบบเกม"><div class="mode-buttons" role="group" aria-label="รูปแบบฝึก"><button type="button" class="mode-button" data-mode="words" aria-pressed="true">🧩 ฝึกคำ</button><button type="button" class="mode-button" data-mode="sentences" aria-pressed="false">📝 ฝึกประโยค</button></div><button id="restartButton" class="restart-button" type="button">↻ เริ่มรอบใหม่</button></section>
+    <section class="practice-card" id="practiceCard" aria-labelledby="practiceTitle">
+      <div class="practice-header"><div><p class="eyebrow" id="practiceTitle">ฝึกพิมพ์ตามโจทย์</p><strong class="question-count" id="questionCount">ข้อ 1 จาก 10</strong></div><span class="score-pill" id="scoreText">⭐ ถูก 0</span></div>
+      <div class="progress-track" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="prompt-tts"><p class="prompt-label">โจทย์</p><button type="button" id="listenButton" class="listen-button" title="ฟังโจทย์เสียงไทย">🔊 ฟังโจทย์</button></div>
+      <div class="target-text" id="targetText" aria-label="โจทย์ฝึกพิมพ์"></div>
+      <label class="input-label" for="typingInput">คำตอบ</label>
+      <textarea id="typingInput" class="typing-input" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="inputHelp feedback" placeholder="Type here..."></textarea>
+      <p class="input-help" id="inputHelp">กด Enter เพื่อตรวจคำตอบ</p>
+      <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+      <div class="practice-actions"><button id="checkButton" class="primary-button" type="button">ตรวจคำตอบ ✓</button><button id="skipButton" class="quiet-button" type="button">ข้ามข้อนี้ →</button></div>
+    </section>
+    <section class="result-card" id="resultCard" hidden aria-live="polite"><span class="result-medal" aria-hidden="true">🏆</span><h2 id="resultTitle">เก่งมาก!</h2><p id="resultMessage"></p><div class="results"><div><strong id="resultCorrect">0/10</strong><span>ข้อที่ทำได้</span></div><div><strong id="resultSkipped">0</strong><span>ข้อที่ข้าม</span></div><div><strong id="resultTime">0:00</strong><span>เวลาที่ใช้</span></div></div><div class="result-actions"><button id="playAgainButton" class="primary-button" type="button">ฝึกอีกครั้ง ↻</button><a class="quiet-button result-link" href="../index.html">เลือกเกมอื่น</a></div></section>
+    
+  </main>
+</body>
+</html>
