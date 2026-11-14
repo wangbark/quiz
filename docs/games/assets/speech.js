@@ -1,4 +1,4 @@
-/* QuizWeb Games R22 — REPAIRED Thai speech syntax and short Thai meanings.
+/* QuizWeb Games R23 — Chrome speech startup fix plus audio diagnostics.
  * Prefer Thai voices (Google Thai if exposed), otherwise ALWAYS use the
  * browser's default speechSynthesis voice. No Premwadee requirement.
  * Every game uses this shared module; no external API, keys or GameLock.
@@ -14,6 +14,7 @@ window.QuizWebGamesSpeech = (() => {
   ];
   const letters={A:'แอ',B:'บ',C:'ค',D:'ด',E:'เอ',F:'ฟ',G:'ก',H:'ฮ',I:'อิ',J:'จ',K:'ค',L:'ล',M:'ม',N:'น',O:'ออ',P:'พ',Q:'ค',R:'ร',S:'ส',T:'ต',U:'อุ',V:'ว',W:'ว',X:'กซ์',Y:'ย',Z:'ซ'};
   let seq=0,timeout=0,active=null;
+  let speechStatus='ready',speechError='',lastVoice='';
   const noticeId='quizweb-games-speech-warning';
   const engine=()=>typeof window!=='undefined'&&window.speechSynthesis;
   function availableVoices(){
@@ -51,7 +52,7 @@ window.QuizWebGamesSpeech = (() => {
   }
   function cancel(){
     seq++;if(timeout)clearTimeout(timeout);timeout=0;active=null;
-    try{engine()?.cancel();}catch(_){}
+    try{const s=engine();if(s&&(active||s.speaking||s.pending))s.cancel();}catch(_){}
   }
   // A word is pronounced in Thai transcription followed immediately by its Thai meaning.
   // "FISH" + "ปลา" -> "ฟิช ปลา". No intro words or labels.
@@ -65,6 +66,7 @@ window.QuizWebGamesSpeech = (() => {
     const pronounced=/[A-Za-z]/.test(original)?thaiReading(original):original;
     const spoken=(translation&&/[A-Za-z]/.test(original)?pronounced+' '+translation:pronounced).trim();
     let completed=false,tryIndex=-1,utterance=null,watchdog=0;
+    speechStatus='trying';speechError='';lastVoice='';
     function finish(){
       if(completed||ticket!==seq)return;
       completed=true;
@@ -89,23 +91,25 @@ window.QuizWebGamesSpeech = (() => {
       clearTimeout(watchdog);watchdog=0;
       tryIndex++;
       if(tryIndex>=candidates.length){
+        speechStatus='failed';speechError=speechError||'No voice started';
         warn('เสียงอ่านยังไม่ทำงาน · แตะปุ่ม 🔊 ฟังคำอีกครั้ง และตรวจเสียงของเบราว์เซอร์');
         finish();return;
       }
       try{
         // Browser engines sometimes remain paused after a prior cancellation.
-        synth.cancel();
+        if(utterance&&(synth.speaking||synth.pending))synth.cancel();
         if(synth.paused&&typeof synth.resume==='function')synth.resume();
         const current=candidates[tryIndex];
         const u=new SpeechSynthesisUtterance(spoken);
-        utterance=u;active=u;
+        utterance=u;active=u;lastVoice=current.label;speechStatus='trying';
         if(current.voice)u.voice=current.voice;
-        u.lang='th-TH';
+        if(current.voice)u.lang=current.voice.lang||'th-TH';
+        else if(tryIndex===0)u.lang='th-TH';
         u.rate=.87;u.pitch=1;u.volume=1;
         let started=false,startAt=0;
         u.onstart=()=>{
           if(ticket!==seq||completed||utterance!==u)return;
-          started=true;startAt=Date.now();
+          started=true;startAt=Date.now();speechStatus='speaking';
           clearTimeout(watchdog);
           // Guard against a missing onend without blocking gameplay indefinitely.
           watchdog=setTimeout(finish,Math.min(16000,5000+spoken.length*350));
@@ -114,18 +118,19 @@ window.QuizWebGamesSpeech = (() => {
           if(ticket!==seq||completed||utterance!==u)return;
           // A zero-length 'speech' on a missing engine is not a successful read.
           if((!started||Date.now()-startAt<120)&&tryIndex<candidates.length-1){tryNext();return;}
-          finish();
+          speechStatus='ended';finish();
         };
-        u.onerror=()=>{
+        u.onerror=(event)=>{speechError=String(event?.error||'speech-error');
           if(ticket!==seq||completed||utterance!==u)return;
           tryNext();
         };
         synth.speak(u);
         // On some Chromium/WebView builds neither onstart nor onerror fires.
-        watchdog=setTimeout(()=>{if(!started&&ticket===seq&&!completed)tryNext();},2800);
+        watchdog=setTimeout(()=>{if(!started&&ticket===seq&&!completed){if(synth.speaking){speechStatus='speaking-without-start-event';watchdog=setTimeout(finish,Math.min(18000,6000+spoken.length*320));}else{speechError='onstart ไม่เกิด';tryNext();}}},2800);
       }catch(err){tryNext();}
     }
     tryNext();
   }
-  return {say,cancel,thaiReading,hasThaiVoice:()=>!!thaiVoice(),getPreferredVoice:thaiVoice};
+  const getStatus=()=>({supported:!!engine()&&typeof SpeechSynthesisUtterance==='function',voices:availableVoices().map(v=>({name:v.name,lang:v.lang,default:!!v.default})),stage:speechStatus,error:speechError,voice:lastVoice,speaking:!!engine()?.speaking,paused:!!engine()?.paused,pending:!!engine()?.pending});
+  return {say,cancel,thaiReading,hasThaiVoice:()=>!!thaiVoice(),getPreferredVoice:thaiVoice,getStatus};
 })();
